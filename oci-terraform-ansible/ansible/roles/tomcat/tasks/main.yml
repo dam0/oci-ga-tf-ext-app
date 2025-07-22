@@ -1,0 +1,104 @@
+---
+- name: Create tomcat group
+  group:
+    name: "{{ tomcat_group }}"
+    state: present
+
+- name: Create tomcat user
+  user:
+    name: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    home: "{{ tomcat_home }}"
+    createhome: no
+    shell: /bin/nologin
+    state: present
+
+- name: Create Tomcat installation directory
+  file:
+    path: "{{ tomcat_home }}"
+    state: directory
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0755'
+
+- name: Download Tomcat
+  get_url:
+    url: "https://archive.apache.org/dist/tomcat/tomcat-9/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    mode: '0644'
+
+- name: Extract Tomcat
+  unarchive:
+    src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    dest: "{{ tomcat_home }}"
+    remote_src: yes
+    extra_opts: "--strip-components=1"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    creates: "{{ tomcat_home }}/bin/startup.sh"
+
+- name: Set permissions on Tomcat directories
+  file:
+    path: "{{ tomcat_home }}/{{ item }}"
+    state: directory
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0750'
+  with_items:
+    - bin
+    - lib
+    - webapps
+    - work
+    - temp
+    - logs
+    - conf
+
+- name: Set permissions on Tomcat binaries
+  file:
+    path: "{{ tomcat_home }}/bin/{{ item }}"
+    mode: '0750'
+  with_items:
+    - catalina.sh
+    - startup.sh
+    - shutdown.sh
+
+- name: Create Tomcat systemd service file
+  template:
+    src: tomcat.service.j2
+    dest: /etc/systemd/system/tomcat.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart tomcat
+
+- name: Configure Tomcat users
+  template:
+    src: tomcat-users.xml.j2
+    dest: "{{ tomcat_home }}/conf/tomcat-users.xml"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0640'
+  notify: restart tomcat
+
+- name: Configure Tomcat server
+  template:
+    src: server.xml.j2
+    dest: "{{ tomcat_home }}/conf/server.xml"
+    owner: "{{ tomcat_user }}"
+    group: "{{ tomcat_group }}"
+    mode: '0640'
+  notify: restart tomcat
+
+- name: Allow Tomcat through firewall
+  firewalld:
+    port: "{{ tomcat_port }}/tcp"
+    permanent: yes
+    state: enabled
+  notify: reload firewall
+
+- name: Start and enable Tomcat service
+  systemd:
+    name: tomcat
+    state: started
+    enabled: yes
+    daemon_reload: yes

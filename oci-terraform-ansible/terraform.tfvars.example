@@ -1,0 +1,21 @@
+# Authentication
+tenancy_ocid     = "ocid1.tenancy.oc1..exampleuniqueID"
+user_ocid        = "ocid1.user.oc1..exampleuniqueID"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key_path = "/path/to/your/private_key.pem"
+region           = "us-ashburn-1"
+
+# Resource Configuration
+compartment_id      = "ocid1.compartment.oc1..exampleuniqueID"
+availability_domain = "aBCD:US-ASHBURN-AD-1"
+ssh_public_key      = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ..."
+instance_shape      = "VM.Standard2.1"
+instance_image_ocid = "ocid1.image.oc1.iad.aaaaaaaaxrqeombwty6jyqgk3fraczdd63bv66xgfsqka4ktr7c57awr3p5a"
+
+# Network Configuration
+vcn_cidr            = "10.0.0.0/16"
+public_subnet_cidr  = "10.0.1.0/24"
+private_subnet_cidr = "10.0.2.0/24"
+
+# Instance Configuration
+create_second_instance = false  # Set to true to create a second private instance with its own reserved private IP

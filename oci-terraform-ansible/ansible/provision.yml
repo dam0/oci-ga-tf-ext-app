@@ -1,0 +1,18 @@
+---
+- name: Provision bastion host
+  hosts: bastion
+  become: yes
+  roles:
+    - common
+    - java
+    - sqlcl
+
+- name: Provision private instances
+  hosts: private_instances
+  become: yes
+  roles:
+    - common
+    - java
+    - tomcat
+    - sqlcl
+    - ords

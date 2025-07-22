@@ -1,0 +1,32 @@
+---
+# Java settings
+java_version: "11"
+java_package: "java-11-openjdk-devel"
+
+# Tomcat settings
+tomcat_version: "9.0.71"
+tomcat_user: "tomcat"
+tomcat_group: "tomcat"
+tomcat_home: "/opt/tomcat"
+tomcat_port: 8080
+tomcat_admin_username: "admin"
+tomcat_admin_password: "admin_password"  # Change this in production
+
+# SQLCL settings
+sqlcl_version: "23.2.0"
+sqlcl_url: "https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-{{ sqlcl_version }}.zip"
+sqlcl_install_dir: "/opt/sqlcl"
+
+# Oracle ORDS settings
+ords_version: "22.4.0"
+ords_url: "https://download.oracle.com/otn_software/java/ords/ords-{{ ords_version }}.zip"
+ords_install_dir: "/opt/ords"
+ords_config_dir: "/etc/ords"
+ords_port: 8888
+
+# Database connection settings (update these with your actual database details)
+db_host: "your-db-host"
+db_port: 1521
+db_service: "your-db-service"
+db_sys_password: "your-sys-password"  # Change this in production
+db_ords_password: "your-ords-password"  # Change this in production
