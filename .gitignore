@@ -47,11 +47,4 @@ terraform.rc
 # Archive files
 *.tar.gz
 *.zip
-*.tar
-
-oci-terraform-ansible/terraform.tfstate.backup
-oci-terraform-ansible/terraform.tfstate
-oci-terraform-ansible/.terraform.lock.hcl
-oci-terraform-ansible/terraform.tfvars
-oci-terraform-ansible/terraform.tfstate
-oci-terraform-ansible/terraform.tfstate.backup
+*.tfvars
