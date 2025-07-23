@@ -391,6 +391,11 @@ The Ansible playbooks will install and configure:
    - Accessible on port 8888
    - Configured to connect to your Oracle database
 
+5. **Firewall Configuration** - Configured on all instances using firewalld
+   - **Bastion hosts**: SSH (port 22) only
+   - **Private instances**: SSH (port 22), Tomcat (port 8080), and ORDS (port 8888)
+   - Automatic firewall rule verification and status reporting
+
 ### Customizing the Installation
 
 You can customize the software installation by modifying the variables in `ansible/group_vars/all.yml`.
@@ -420,6 +425,26 @@ This configuration includes several security features to protect your infrastruc
    - Only allows requests to specific paths (/ords/r/marinedataregister)
    - Provides protection against common web attacks
 
+### Host-Level Firewall
+
+Each instance is configured with firewalld for host-level security:
+
+1. **Bastion Host Firewall**:
+   - SSH (port 22) - For administrative access
+   - All other ports blocked by default
+
+2. **Private Instance Firewall**:
+   - SSH (port 22) - For administrative access via bastion
+   - Tomcat (port 8080) - For web application traffic from load balancer
+   - ORDS (port 8888) - For Oracle REST Data Services
+   - All other ports blocked by default
+
+3. **Firewall Management**:
+   - Automatic configuration during Ansible provisioning
+   - Persistent rules across reboots
+   - Status verification and reporting
+   - Group-specific configurations via Ansible group variables
+
 ### Customizing Security Settings
 
 You can customize the security settings by modifying the following variables:
@@ -442,6 +467,39 @@ variable "allowed_ssh_cidr" {
 variable "waf_allowed_paths" {
   default = ["/ords/r/marinedataregister"]
 }
+```
+
+#### Firewall Customization
+
+You can customize the host-level firewall configuration by modifying the Ansible group variables:
+
+**Global firewall settings** (`ansible/group_vars/all.yml`):
+```yaml
+# Enable/disable firewall configuration
+configure_firewall: true
+firewall_zone: public
+```
+
+**Bastion-specific settings** (`ansible/group_vars/bastion.yml`):
+```yaml
+firewall_bastion_services:
+  - ssh
+firewall_bastion_ports: []
+```
+
+**Private instance settings** (`ansible/group_vars/private_instances.yml`):
+```yaml
+firewall_private_services:
+  - ssh
+firewall_private_ports:
+  - 8080/tcp  # Tomcat
+  - 8888/tcp  # ORDS
+```
+
+To test firewall configuration after deployment:
+```bash
+cd ansible
+ansible-playbook -i inventory/hosts.ini test-firewall.yml
 ```
 
 ## Cleanup

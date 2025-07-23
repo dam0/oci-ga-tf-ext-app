@@ -27,30 +27,13 @@ ords_install_dir: "/opt/ords"
 ords_config_dir: "/etc/ords"
 ords_port: 8888
 
-# Runtime configuration (these will be set during provisioning)
-db_port: "{{ db_port }}"
-db_hostname: "{{ db_hostname }}"
-db_servicename: "{{ db_servicename }}"
-db_user: "{{ db_user }}"
-db_sys_password: "{{ db_sys_password }}"
-
-
-#############
-
----
-# Java settings (version passed from Packer)
-# java_home: "/usr/java/jdk-{{ java_version }}"
-# java_install_devel: false  # Set to false if you only want headless version
-
-# APEX settings (version passed from Packer)
+# APEX settings
 apex_zip_url: "https://download.oracle.com/otn_software/apex/apex_{{ apex_version }}_en.zip"
 apex_version: "24.1"
 
-# Firewall settings for load balancer environment
-allowed_ports:
-  - "22/tcp"    # SSH
-  - "8080/tcp"  # HTTP only - TLS terminated at load balancer
-  # Remove 8443/tcp as it's not needed
+# Firewall configuration
+configure_firewall: true
+firewall_zone: public
 
 # Load balancer settings
 behind_load_balancer: true
@@ -60,6 +43,12 @@ ssl_enabled: false  # No SSL on backend when LB terminates TLS
 configure_at_runtime: true
 install_only: true  # Don't configure services during image build
 
+# Runtime configuration (these will be set during provisioning)
+db_port: "{{ db_port }}"
+db_hostname: "{{ db_hostname }}"
+db_servicename: "{{ db_servicename }}"
+db_user: "{{ db_user }}"
+db_sys_password: "{{ db_sys_password }}"
 
 # Environment variable with command parameter override support
 # Usage: ansible-playbook -e env=prod site.yml

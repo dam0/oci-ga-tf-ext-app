@@ -4,6 +4,7 @@
   become: yes
   roles:
     - common
+    - firewall
     - java
     - sqlcl
 
@@ -12,6 +13,7 @@
   become: yes
   roles:
     - common
+    - firewall
     - java
     - tomcat
     - sqlcl
