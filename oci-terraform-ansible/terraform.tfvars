@@ -15,6 +15,3 @@ private_key_path = "/Users/damo/.ssh/oci/ga-ops-2025-06-30T03_52_32.238Z.pem"
 vcn_cidr            = "10.0.0.0/16"
 public_subnet_cidr  = "10.0.1.0/24"
 private_subnet_cidr = "10.0.2.0/24"
-
-# Instance Configuration
-create_second_instance = false  # Set to true to create a second private instance with its own reserved private IP

@@ -131,7 +131,7 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
   
   actions {
     name = "BLOCK_DEFAULT"
-    type = "BLOCK"
+    type = "RETURN_HTTP_RESPONSE"
     code = var.waf_block_response_code
     headers {
       name  = "Content-Type"

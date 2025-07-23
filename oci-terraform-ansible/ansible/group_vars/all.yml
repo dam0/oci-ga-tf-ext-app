@@ -8,6 +8,7 @@ tomcat_version: "9.0.71"
 tomcat_user: "tomcat"
 tomcat_group: "tomcat"
 tomcat_home: "/opt/tomcat"
+tomcat_conf: "/etc/tomcat/conf"
 tomcat_port: 8080
 tomcat_admin_username: "admin"
 tomcat_admin_password: "admin_password"  # Change this in production
@@ -16,6 +17,8 @@ tomcat_admin_password: "admin_password"  # Change this in production
 sqlcl_version: "latest"
 sqlcl_url: "https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-{{ sqlcl_version }}.zip"
 sqlcl_install_dir: "/opt/sqlcl"
+sqlcl_user: "opc"
+sqlcl_group: "opc"
 
 # Oracle ORDS settings
 ords_version: "latest"
@@ -24,9 +27,42 @@ ords_install_dir: "/opt/ords"
 ords_config_dir: "/etc/ords"
 ords_port: 8888
 
-# Database connection settings (update these with your actual database details)
-db_host: "your-db-host"
-db_port: 1521
-db_service: "your-db-service"
-db_sys_password: "your-sys-password"  # Change this in production
-db_ords_password: "your-ords-password"  # Change this in production
+# Runtime configuration (these will be set during provisioning)
+db_port: "{{ db_port }}"
+db_hostname: "{{ db_hostname }}"
+db_servicename: "{{ db_servicename }}"
+db_user: "{{ db_user }}"
+db_sys_password: "{{ db_sys_password }}"
+
+
+#############
+
+---
+# Java settings (version passed from Packer)
+# java_home: "/usr/java/jdk-{{ java_version }}"
+# java_install_devel: false  # Set to false if you only want headless version
+
+# APEX settings (version passed from Packer)
+apex_zip_url: "https://download.oracle.com/otn_software/apex/apex_{{ apex_version }}_en.zip"
+apex_version: "24.1"
+
+# Firewall settings for load balancer environment
+allowed_ports:
+  - "22/tcp"    # SSH
+  - "8080/tcp"  # HTTP only - TLS terminated at load balancer
+  # Remove 8443/tcp as it's not needed
+
+# Load balancer settings
+behind_load_balancer: true
+ssl_enabled: false  # No SSL on backend when LB terminates TLS
+
+# Base image settings
+configure_at_runtime: true
+install_only: true  # Don't configure services during image build
+
+
+# Environment variable with command parameter override support
+# Usage: ansible-playbook -e env=prod site.yml
+# Or set ANSIBLE_ENV environment variable: ANSIBLE_ENV=prod ansible-playbook site.yml
+# env: "{{ lookup('env', 'ANSIBLE_ENV') | default('test') }}"
+
