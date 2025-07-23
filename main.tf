@@ -126,6 +126,22 @@ module "load_balancer" {
   depends_on = [module.private_compute]
 }
 
+# IAM Module - Creates necessary policies for load balancer service
+module "iam" {
+  source = "./modules/iam"
+
+  tenancy_ocid                   = var.tenancy_ocid
+  compartment_id                 = var.compartment_id
+  name_prefix                    = var.name_prefix
+  create_load_balancer_policies  = var.create_load_balancer_policies
+  enable_dynamic_group_policies  = var.enable_dynamic_group_policies
+  create_waf_policies           = var.enable_waf
+  create_health_check_policies  = var.create_health_check_policies
+  
+  # Tagging
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
+}
 
 # Ansible Provisioning - Run Ansible after infrastructure is created
 resource "null_resource" "ansible_provisioning" {
