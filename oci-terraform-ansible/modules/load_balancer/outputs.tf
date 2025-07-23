@@ -24,8 +24,8 @@ output "load_balancer_state" {
 }
 
 output "http_listener_name" {
-  description = "The name of the HTTP listener"
-  value       = oci_load_balancer_listener.http_listener.name
+  description = "The name of the HTTP listener (temporarily disabled)"
+  value       = "http_listener_temporarily_disabled"
 }
 
 output "https_listener_name" {
@@ -49,8 +49,8 @@ output "certificate_ocid" {
 }
 
 output "http_redirect_rule_set_name" {
-  description = "The name of the HTTP to HTTPS redirect rule set"
-  value       = oci_load_balancer_rule_set.http_to_https_redirect.name
+  description = "The name of the HTTP to HTTPS redirect rule set (temporarily disabled)"
+  value       = "http_redirect_rule_set_temporarily_disabled"
 }
 
 output "load_balancer_fqdn" {

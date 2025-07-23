@@ -59,43 +59,46 @@ resource "oci_load_balancer_backend" "tomcat_backends" {
 # Note: Using existing certificate OCID instead of creating new certificate
 # The certificate OCID is provided via variable: var.certificate_ocid
 
-# Create a rule set for HTTP to HTTPS redirect
-resource "oci_load_balancer_rule_set" "http_to_https_redirect" {
-  load_balancer_id = oci_load_balancer_load_balancer.lb.id
-  name             = "${replace(var.name_prefix, "-", "_")}_http_to_https_redirect"
-  
-  items {
-    action = "REDIRECT"
-    conditions {
-      attribute_name  = "PATH"
-      attribute_value = "/"
-      operator        = "PREFIX_MATCH"
-    }
-    redirect_uri {
-      protocol = "HTTPS"
-      port     = 443
-      host     = "{host}"
-      path     = "{path}"
-      query    = "{query}"
-    }
-    response_code = var.redirect_response_code
-  }
-}
+# TEMPORARILY COMMENTED OUT - HTTP listener and rule set causing backend set conflicts
+# These resources are missing from Terraform state and causing conflicts when trying to create them
 
-# Create HTTP listener (port 80) with redirect to HTTPS
-resource "oci_load_balancer_listener" "http_listener" {
-  load_balancer_id         = oci_load_balancer_load_balancer.lb.id
-  name                     = "${replace(var.name_prefix, "-", "_")}_http_listener"
-  default_backend_set_name = oci_load_balancer_backend_set.tomcat_backend_set.name
-  port                     = 80
-  protocol                 = "HTTP"
-  
-  rule_set_names = [oci_load_balancer_rule_set.http_to_https_redirect.name]
-  
-  connection_configuration {
-    idle_timeout_in_seconds = var.connection_idle_timeout
-  }
-}
+# # Create a rule set for HTTP to HTTPS redirect
+# resource "oci_load_balancer_rule_set" "http_to_https_redirect" {
+#   load_balancer_id = oci_load_balancer_load_balancer.lb.id
+#   name             = "${replace(var.name_prefix, "-", "_")}_http_to_https_redirect"
+#   
+#   items {
+#     action = "REDIRECT"
+#     conditions {
+#       attribute_name  = "PATH"
+#       attribute_value = "/"
+#       operator        = "PREFIX_MATCH"
+#     }
+#     redirect_uri {
+#       protocol = "HTTPS"
+#       port     = 443
+#       host     = "{host}"
+#       path     = "{path}"
+#       query    = "{query}"
+#     }
+#     response_code = var.redirect_response_code
+#   }
+# }
+
+# # Create HTTP listener (port 80) with redirect to HTTPS
+# resource "oci_load_balancer_listener" "http_listener" {
+#   load_balancer_id         = oci_load_balancer_load_balancer.lb.id
+#   name                     = "${replace(var.name_prefix, "-", "_")}_http_listener"
+#   default_backend_set_name = oci_load_balancer_backend_set.tomcat_backend_set.name
+#   port                     = 80
+#   protocol                 = "HTTP"
+#   
+#   rule_set_names = [oci_load_balancer_rule_set.http_to_https_redirect.name]
+#   
+#   connection_configuration {
+#     idle_timeout_in_seconds = var.connection_idle_timeout
+#   }
+# }
 
 # Create HTTPS listener (port 443) using existing certificate OCID
 resource "oci_load_balancer_listener" "https_listener" {

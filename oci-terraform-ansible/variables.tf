@@ -224,7 +224,7 @@ variable "health_check_url_path" {
 variable "enable_waf" {
   description = "Whether to enable Web Application Firewall"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "waf_rate_limit_requests_per_minute" {
