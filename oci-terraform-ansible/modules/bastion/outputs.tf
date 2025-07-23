@@ -32,7 +32,13 @@ output "reserved_private_ip_id" {
 
 output "vnic_id" {
   description = "The OCID of the primary VNIC"
-  value       = oci_core_instance.bastion.create_vnic_details[0].vnic_id
+  value       = data.oci_core_vnic_attachments.bastion_vnic_attachments.vnic_attachments[0].vnic_id
+}
+
+# Data source to get VNIC attachments
+data "oci_core_vnic_attachments" "bastion_vnic_attachments" {
+  compartment_id      = var.compartment_id
+  instance_id         = oci_core_instance.bastion.id
 }
 
 output "secondary_vnic_id" {

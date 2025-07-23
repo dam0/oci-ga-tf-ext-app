@@ -239,6 +239,25 @@ variable "waf_allowed_paths" {
   default     = ["/ords/r/marinedataregister", "/"]
 }
 
+# IP Filtering Configuration
+variable "allowed_ipv6_cidr" {
+  description = "List of allowed IPv6 CIDR blocks"
+  type        = list(string)
+  default     = ["2400:a844:4088::/48"]
+}
+
+variable "allowed_ipv4_cidr" {
+  description = "List of allowed IPv4 CIDR blocks"
+  type        = list(string)
+  default     = ["10.0.0.0/8"]
+}
+
+variable "allowed_ssh_cidr" {
+  description = "List of allowed CIDR blocks for SSH access"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
 # Tags
 variable "freeform_tags" {
   description = "Freeform tags for all resources"

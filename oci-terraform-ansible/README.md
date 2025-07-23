@@ -1,17 +1,18 @@
-# OCI Terraform Configuration with Ansible Provisioning
+# OCI Terraform Configuration with Ansible Provisioning, WAF, and IP Filtering
 
-This Terraform configuration provisions an Oracle Cloud Infrastructure (OCI) environment with a public bastion host and private instances, each with attached private IPs that can be detached for reuse. It also includes Ansible playbooks to provision the instances with Java, SQLCL, Oracle ORDS, and Tomcat server.
+This Terraform configuration provisions an Oracle Cloud Infrastructure (OCI) environment with a public bastion host and private instances, each with attached private IPs that can be detached for reuse. It includes integrated Web Application Firewall (WAF) with IP filtering, SSL termination, and Ansible playbooks to provision the instances with Java, SQLCL, Oracle ORDS, and Tomcat server.
 
 ## Architecture
 
 The project uses a modular architecture with the following components:
 
 ### Modules
-- **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists
-- **Compute Module**: Creates instances with detachable private IPs
-- **Load Balancer Module**: Creates a load balancer with HTTP to HTTPS redirect
-- **WAF Module**: Creates a Web Application Firewall that blocks traffic by default and allows specific paths
-- **Ansible Module**: Provisions instances using Ansible
+- **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists with IP filtering
+- **Bastion Module**: Creates bastion host with detachable private IP
+- **Private Compute Module**: Creates private instances with detachable private IPs for Tomcat servers
+- **Load Balancer Module**: Creates a load balancer with HTTP to HTTPS redirect, SSL termination, and integrated WAF
+- **Integrated WAF**: Web Application Firewall that blocks traffic by default and allows only `/ords/r/marinedataregister` path with IP filtering
+- **Ansible Integration**: Provisions instances using Ansible playbooks
 
 This modular approach provides several benefits:
 - **Reusability**: Modules can be reused across different projects
@@ -41,6 +42,30 @@ This modular approach provides several benefits:
 - Oracle SQLCL (on all instances)
 - Oracle ORDS (on private instances)
 
+## Security Features
+
+### Web Application Firewall (WAF)
+- **Default Action**: Blocks all traffic by default
+- **Allowed Paths**: Only `/ords/r/marinedataregister` and `/` (for health checks)
+- **IP Filtering**: Requests must originate from allowed IPv4/IPv6 CIDR blocks
+- **Rate Limiting**: Configurable requests per minute (default: 100)
+- **OWASP Protection**: Built-in protection against SQL injection and XSS attacks
+
+### IP Filtering Configuration
+```hcl
+# Application access (WAF level)
+allowed_ipv6_cidr = ["2400:a844:4088::/48"]
+allowed_ipv4_cidr = ["10.0.0.0/8"]
+
+# SSH access (Network security group level)
+allowed_ssh_cidr = ["0.0.0.0/0"]  # Restrict as needed for security
+```
+
+### SSL/TLS Configuration
+- **Certificate**: Uses OCI Certificate Service (certificate OCID required)
+- **HTTP Redirect**: Automatic HTTP to HTTPS redirect
+- **SSL Termination**: Handled at the load balancer level
+
 ## Prerequisites
 
 1. An Oracle Cloud Infrastructure account
@@ -48,6 +73,7 @@ This modular approach provides several benefits:
 3. Terraform installed
 4. Ansible installed (for software provisioning)
 5. SSH key pair for instance access
+6. **SSL Certificate**: Valid certificate uploaded to OCI Certificate Service
 
 ## Setup Instructions
 

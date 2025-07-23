@@ -161,3 +161,47 @@ variable "defined_tags" {
   type        = map(string)
   default     = {}
 }
+
+# WAF Configuration Variables
+variable "enable_waf" {
+  description = "Whether to enable Web Application Firewall"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit_requests_per_minute" {
+  description = "Number of requests allowed per minute for rate limiting"
+  type        = number
+  default     = 100
+}
+
+variable "waf_allowed_paths" {
+  description = "List of allowed URL paths (default blocks all except these)"
+  type        = list(string)
+  default     = ["/ords/r/marinedataregister", "/"]
+}
+
+variable "waf_block_response_code" {
+  description = "HTTP response code for blocked requests"
+  type        = number
+  default     = 403
+}
+
+variable "waf_block_response_message" {
+  description = "Response message for blocked requests"
+  type        = string
+  default     = "Access Denied: This resource is not available."
+}
+
+# IP Filtering Variables
+variable "allowed_ipv6_cidr" {
+  description = "List of allowed IPv6 CIDR blocks"
+  type        = list(string)
+  default     = ["2400:a844:4088::/48"]
+}
+
+variable "allowed_ipv4_cidr" {
+  description = "List of allowed IPv4 CIDR blocks"
+  type        = list(string)
+  default     = ["10.0.0.0/8"]
+}

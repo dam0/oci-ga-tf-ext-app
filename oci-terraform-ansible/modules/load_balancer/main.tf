@@ -105,19 +105,157 @@ resource "oci_load_balancer_listener" "https_listener" {
   protocol                 = "HTTP"
   
   ssl_configuration {
-    certificate_ids         = [var.certificate_ocid]
-    verify_peer_certificate = var.ssl_verify_peer_certificate
-    verify_depth           = var.ssl_verify_depth
-    
-    dynamic "trusted_certificate_authority_ids" {
-      for_each = var.trusted_ca_ids != null ? [var.trusted_ca_ids] : []
-      content {
-        trusted_certificate_authority_ids = trusted_certificate_authority_ids.value
-      }
-    }
+    certificate_ids                    = [var.certificate_ocid]
+    verify_peer_certificate           = var.ssl_verify_peer_certificate
+    verify_depth                      = var.ssl_verify_depth
+    trusted_certificate_authority_ids = var.trusted_ca_ids
   }
   
   connection_configuration {
     idle_timeout_in_seconds = var.connection_idle_timeout
   }
+}
+
+# Web Application Firewall Policy
+resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
+  count          = var.enable_waf ? 1 : 0
+  compartment_id = var.compartment_id
+  display_name   = "${var.name_prefix}-tomcat-waf-policy"
+  
+  # Actions - Define what to do when rules match
+  actions {
+    name = "ALLOW_MARINE_DATA"
+    type = "ALLOW"
+  }
+  
+  actions {
+    name = "BLOCK_DEFAULT"
+    type = "BLOCK"
+    code = var.waf_block_response_code
+    headers {
+      name  = "Content-Type"
+      value = "text/plain"
+    }
+    body {
+      type = "STATIC_TEXT"
+      text = var.waf_block_response_message
+    }
+  }
+  
+  # Request Access Control Rules
+  request_access_control {
+    default_action_name = "BLOCK_DEFAULT"
+    
+    # Rule to allow access from allowed IPv4 CIDRs to marine data register
+    rules {
+      name                = "allow-marine-data-register-ipv4"
+      type                = "ACCESS_CONTROL"
+      action_name         = "ALLOW_MARINE_DATA"
+      condition_language  = "JMESPATH"
+      condition           = "request.url.path =~ '/ords/r/marinedataregister*' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+    }
+    
+    # Rule to allow access from allowed IPv6 CIDRs to marine data register
+    rules {
+      name                = "allow-marine-data-register-ipv6"
+      type                = "ACCESS_CONTROL"
+      action_name         = "ALLOW_MARINE_DATA"
+      condition_language  = "JMESPATH"
+      condition           = "request.url.path =~ '/ords/r/marinedataregister*' && (${join(" || ", [for cidr in var.allowed_ipv6_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+    }
+    
+    # Rule to allow health checks from allowed IPs
+    rules {
+      name                = "allow-health-checks-ipv4"
+      type                = "ACCESS_CONTROL"
+      action_name         = "ALLOW_MARINE_DATA"
+      condition_language  = "JMESPATH"
+      condition           = "request.url.path == '/' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+    }
+    
+    # Rule to block requests from disallowed IPs
+    rules {
+      name                = "block-disallowed-ips"
+      type                = "ACCESS_CONTROL"
+      action_name         = "BLOCK_DEFAULT"
+      condition_language  = "JMESPATH"
+      condition           = "!(${join(" || ", [for cidr in concat(var.allowed_ipv4_cidr, var.allowed_ipv6_cidr) : "request.remote_address | cidr_match('${cidr}')"])})"
+    }
+  }
+  
+  # Request Protection Rules (OWASP protection)
+  request_protection {
+    # Protection against common web attacks
+    rules {
+      name                = "protect-against-sqli"
+      type                = "PROTECTION"
+      action_name         = "BLOCK_DEFAULT"
+      condition_language  = "JMESPATH"
+      condition           = "keys(request.headers)[?lower(@) == 'user-agent'] | [0]"
+      protection_capabilities {
+        key     = "920350"  # SQL Injection Attack
+        version = 1
+      }
+    }
+    
+    rules {
+      name                = "protect-against-xss"
+      type                = "PROTECTION"
+      action_name         = "BLOCK_DEFAULT"
+      condition_language  = "JMESPATH"
+      condition           = "keys(request.headers)[?lower(@) == 'user-agent'] | [0]"
+      protection_capabilities {
+        key     = "941100"  # XSS Attack
+        version = 1
+      }
+    }
+  }
+  
+  # Request Rate Limiting
+  request_rate_limiting {
+    rules {
+      name                = "rate-limit-marine-data"
+      type                = "REQUEST_RATE_LIMITING"
+      action_name         = "BLOCK_DEFAULT"
+      condition_language  = "JMESPATH"
+      condition           = "request.url.path =~ '/ords/r/marinedataregister*'"
+      configurations {
+        period_in_seconds         = 60
+        requests_limit           = var.waf_rate_limit_requests_per_minute
+        action_duration_in_seconds = 300
+      }
+    }
+  }
+  
+  # Response Access Control (optional)
+  response_access_control {
+    rules {
+      name                = "response-security-headers"
+      type                = "ACCESS_CONTROL"
+      action_name         = "ALLOW_MARINE_DATA"
+      condition_language  = "JMESPATH"
+      condition           = "true"
+    }
+  }
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
+}
+
+# Web Application Firewall - Associate with Load Balancer
+resource "oci_waf_web_app_firewall" "tomcat_waf" {
+  count                      = var.enable_waf ? 1 : 0
+  compartment_id             = var.compartment_id
+  backend_type              = "LOAD_BALANCER"
+  load_balancer_id          = oci_load_balancer_load_balancer.lb.id
+  web_app_firewall_policy_id = oci_waf_web_app_firewall_policy.tomcat_waf_policy[0].id
+  display_name              = "${var.name_prefix}-tomcat-waf"
+  
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
+  
+  depends_on = [
+    oci_load_balancer_load_balancer.lb,
+    oci_waf_web_app_firewall_policy.tomcat_waf_policy
+  ]
 }

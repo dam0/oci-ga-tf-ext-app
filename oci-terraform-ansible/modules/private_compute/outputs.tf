@@ -27,7 +27,14 @@ output "reserved_private_ip_ids" {
 
 output "primary_vnic_ids" {
   description = "The OCIDs of the primary VNICs"
-  value       = [for instance in oci_core_instance.private_instance : instance.create_vnic_details[0].vnic_id]
+  value       = [for i in range(var.instance_count) : data.oci_core_vnic_attachments.private_instance_vnic_attachments[i].vnic_attachments[0].vnic_id]
+}
+
+# Data source to get VNIC attachments for each instance
+data "oci_core_vnic_attachments" "private_instance_vnic_attachments" {
+  count               = var.instance_count
+  compartment_id      = var.compartment_id
+  instance_id         = oci_core_instance.private_instance[count.index].id
 }
 
 output "secondary_vnic_ids" {
