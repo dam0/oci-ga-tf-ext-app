@@ -9,6 +9,7 @@ The project uses a modular architecture with the following components:
 ### Modules
 - **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists
 - **Compute Module**: Creates instances with detachable private IPs
+- **Load Balancer Module**: Creates a load balancer with HTTP to HTTPS redirect
 - **Ansible Module**: Provisions instances using Ansible
 
 This modular approach provides several benefits:
@@ -29,6 +30,8 @@ This modular approach provides several benefits:
 - Public Bastion Host (in public subnet)
 - Private Instance(s) (in private subnet)
 - Reusable Private IPs for each instance
+- Load Balancer with HTTP to HTTPS redirect
+- SSL Certificate for HTTPS connections
 
 ### Software (Ansible)
 - Java 11 (on all instances)
@@ -152,6 +155,36 @@ module "compute" {
 }
 ```
 
+### Load Balancer Module
+
+```hcl
+module "load_balancer" {
+  source = "./modules/load_balancer"
+  
+  compartment_id = var.compartment_id
+  name_prefix    = "test-ext"
+  
+  # Network references
+  public_subnet_id = module.network.public_subnet_id
+  
+  # Backend instances
+  private_instance_ids = [module.compute.private_instance_id]
+  
+  # SSL Certificate
+  certificate_ocid = "ocid1.certificate.oc1.ap-sydney-1.amaaaaaauvuxtpqavipyy4kzf6dtloospnhtfqmq42fkhbneskpxjuwyzs5q"
+  
+  # Load balancer configuration
+  lb_shape                   = "flexible"
+  lb_min_shape_bandwidth_mbps = 10
+  lb_max_shape_bandwidth_mbps = 100
+  
+  # Backend configuration
+  backend_port         = 8080
+  health_check_port    = 8080
+  health_check_url_path = "/"
+}
+```
+
 ### Ansible Module
 
 ```hcl
@@ -183,8 +216,13 @@ This configuration creates a secure network architecture with:
 2. A private subnet (10.0.2.0/24) with outbound-only internet access through a NAT Gateway
 3. A bastion host in the public subnet that serves as a jump server to access private instances
 4. Private instances in the private subnet that are not directly accessible from the internet
+5. A load balancer in the public subnet that routes traffic to the private instances
+6. HTTP to HTTPS redirect for secure connections
+7. SSL certificate for HTTPS encryption
 
-## Accessing the Instances
+## Accessing the Environment
+
+### SSH Access to Instances
 
 - The bastion host can be accessed directly via SSH:
   ```
@@ -195,6 +233,16 @@ This configuration creates a secure network architecture with:
   ```
   ssh -J opc@<bastion_public_ip> opc@<private_instance_private_ip>
   ```
+
+### Application Access via Load Balancer
+
+- The Tomcat application can be accessed through the load balancer:
+  - HTTP (will redirect to HTTPS): `http://<load_balancer_ip>`
+  - HTTPS (secure): `https://<load_balancer_ip>`
+
+- The load balancer routes traffic to the Tomcat instances running on port 8080 in the private subnet
+- All HTTP traffic is automatically redirected to HTTPS for secure connections
+- The load balancer uses a valid SSL certificate for HTTPS encryption
 
 ## Reserved Private IPs
 

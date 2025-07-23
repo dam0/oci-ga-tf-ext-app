@@ -1,86 +1,126 @@
-# Main Terraform configuration file
+# Modular Terraform Configuration for OCI Infrastructure
 
-# Network Module - Creates VCN, subnets, gateways, and security lists
+# Network Module - Creates VCN, subnets, gateways, and security groups
 module "network" {
   source = "./modules/network"
 
-  compartment_id = var.compartment_id
-  vcn_cidr       = var.vcn_cidr
-  
-  public_subnet_cidr  = var.public_subnet_cidr
-  private_subnet_cidr = var.private_subnet_cidr
-  
-  # Use name_prefix for consistent naming
-  name_prefix = "test-ext"
-  dns_label   = "testextvcn"
-  
-  # Optional security settings
-  allow_http  = true
-  allow_https = true
-  app_ports   = [8080, 8443, 9090] # Tomcat and ORDS ports
+  compartment_id        = var.compartment_id
+  vcn_cidr             = var.vcn_cidr
+  public_subnet_cidr   = var.public_subnet_cidr
+  private_subnet_cidr  = var.private_subnet_cidr
+  name_prefix          = var.name_prefix
+  dns_label            = var.dns_label
+  allow_http           = var.allow_http
+  allow_https          = var.allow_https
+  app_ports            = var.app_ports
 }
 
-# Compute Module - Creates instances with detachable private IPs
-module "compute" {
-  source = "./modules/compute"
-  
-  compartment_id      = var.compartment_id
-  availability_domain = var.availability_domain
-  name_prefix         = "test-ext"
-  
-  # Instance configuration
-  instance_shape     = var.instance_shape
-  instance_image_ocid = var.instance_image_ocid
-  ssh_public_key     = var.ssh_public_key
-  
-  # Network references
-  public_subnet_id   = module.network.public_subnet_id
-  private_subnet_id  = module.network.private_subnet_id
-  public_subnet_cidr = module.network.public_subnet_cidr
-  private_subnet_cidr = module.network.private_subnet_cidr
-  
-  # Instance sizing
-  bastion_memory_in_gbs = 16
-  bastion_ocpus = 1
-  private_instance_memory_in_gbs = 16
-  private_instance_ocpus = 2
-  
-  # Private IP configuration
-  bastion_private_ip_host_num = 10
-  private_instance_ip_host_num = 10
-  secondary_instance_ip_host_num = 11
-  
-  # Optional second instance
-  create_second_instance = var.create_second_instance
-  
-  # Explicit dependency on network module
+# Bastion Module - Creates bastion host with reserved private IP
+module "bastion" {
+  source = "./modules/bastion"
+
+  compartment_id         = var.compartment_id
+  availability_domain    = var.availability_domain
+  public_subnet_id       = module.network.public_subnet_id
+  instance_shape         = var.instance_shape
+  instance_shape_config  = var.bastion_shape_config
+  instance_image_ocid    = var.instance_image_ocid
+  ssh_public_key         = var.ssh_public_key
+  name_prefix           = var.name_prefix
+  hostname_label        = "bastion"
+  create_reserved_ip    = var.create_bastion_reserved_ip
+  reserved_ip_address   = var.bastion_reserved_ip_address
+  user_data             = var.bastion_user_data
+  freeform_tags         = var.freeform_tags
+  defined_tags          = var.defined_tags
+
   depends_on = [module.network]
 }
 
-# Ansible Module - Provisions instances using Ansible
-module "ansible" {
-  source = "./modules/ansible"
+# Private Compute Module - Creates private instances with reserved private IPs
+module "private_compute" {
+  source = "./modules/private_compute"
+
+  compartment_id         = var.compartment_id
+  availability_domain    = var.availability_domain
+  private_subnet_id      = module.network.private_subnet_id
+  private_subnet_cidr    = module.network.private_subnet_cidr
+  instance_count         = var.private_instance_count
+  instance_shape         = var.instance_shape
+  instance_shape_config  = var.private_instance_shape_config
+  instance_image_ocid    = var.instance_image_ocid
+  ssh_public_key         = var.ssh_public_key
+  name_prefix           = var.name_prefix
+  hostname_label_prefix = "private"
+  create_reserved_ips   = var.create_private_reserved_ips
+  reserved_ip_addresses = var.private_reserved_ip_addresses
+  user_data             = var.private_instance_user_data
+  freeform_tags         = var.freeform_tags
+  defined_tags          = var.defined_tags
+
+  depends_on = [module.network]
+}
+
+# Load Balancer Module - Creates a load balancer for Tomcat instances
+module "load_balancer" {
+  source = "./modules/load_balancer"
   
-  # Instance references
-  bastion_id = module.compute.bastion_id
-  private_instance_id = module.compute.private_instance_id
-  private_instance_secondary_id = module.compute.private_instance_secondary_id
-  create_second_instance = var.create_second_instance
+  compartment_id = var.compartment_id
+  name_prefix    = var.name_prefix
   
-  # IP addresses for Ansible inventory
-  bastion_public_ip = module.compute.bastion_public_ip
-  private_instance_private_ip = module.compute.private_instance_private_ip
-  private_instance_secondary_private_ip = module.compute.private_instance_secondary_private_ip
+  # Network references
+  public_subnet_id = module.network.public_subnet_id
   
-  # Ansible configuration
-  private_key_path = var.private_key_path
-  wait_time_seconds = 120
-  inventory_script_path = "./generate_inventory.sh"
-  ansible_dir = "ansible"
-  inventory_file = "inventory/hosts.ini"
-  playbook_file = "provision.yml"
-  ansible_limit = "--limit private_instances"
+  # Backend instances
+  private_instance_ids = module.private_compute.instance_ids
+  
+  # SSL Certificate
+  certificate_ocid = var.certificate_ocid
+  
+  # Load balancer configuration
+  lb_shape                   = var.lb_shape
+  lb_min_shape_bandwidth_mbps = var.lb_min_bandwidth_mbps
+  lb_max_shape_bandwidth_mbps = var.lb_max_bandwidth_mbps
+  
+  # Backend configuration
+  backend_port         = var.backend_port
+  health_check_port    = var.health_check_port
+  health_check_url_path = var.health_check_url_path
   
   # Explicit dependency on compute module
-  depends_on = [module.compute]
+  depends_on = [module.private_compute]
+}
+
+# Ansible Provisioning - Run Ansible after infrastructure is created
+resource "null_resource" "ansible_provisioning" {
+  count = var.enable_ansible_provisioning ? 1 : 0
+
+  triggers = {
+    bastion_id = module.bastion.instance_id
+    private_instance_ids = join(",", module.private_compute.instance_ids)
+    network_ready = module.network.vcn_id
+    load_balancer_ready = module.load_balancer.load_balancer_id
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      # Wait for instances to be fully initialized
+      sleep 120
+
+      # Export SSH key path
+      export SSH_PRIVATE_KEY_PATH=${var.private_key_path}
+
+      # Generate Ansible inventory
+      ./generate_inventory.sh
+
+      # Run Ansible playbook
+      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml --limit private_instances --private-key ${var.private_key_path} -e "ansible_user=opc ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %h:%p -i ${var.private_key_path} -o StrictHostKeyChecking=no bastion\"'"
+    EOT
+  }
+
+  depends_on = [
+    module.bastion,
+    module.private_compute,
+    module.load_balancer
+  ]
 }
