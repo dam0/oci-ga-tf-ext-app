@@ -193,7 +193,7 @@ variable "waf_block_response_message" {
   default     = "Access Denied: This resource is not available."
 }
 
-# IP Filtering Variables
+# IP Filtering Variables (used for NSG configuration)
 variable "allowed_ipv6_cidr" {
   description = "List of allowed IPv6 CIDR blocks"
   type        = list(string)

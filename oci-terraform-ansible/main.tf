@@ -111,7 +111,7 @@ module "load_balancer" {
   waf_rate_limit_requests_per_minute   = var.waf_rate_limit_requests_per_minute
   waf_allowed_paths                    = var.waf_allowed_paths
   
-  # IP Filtering for WAF
+  # IP Filtering (used for NSG configuration)
   allowed_ipv4_cidr                    = var.allowed_ipv4_cidr
   allowed_ipv6_cidr                    = var.allowed_ipv6_cidr
   

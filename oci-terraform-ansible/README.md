@@ -452,9 +452,13 @@ This configuration includes several security features to protect your infrastruc
    - **Bastion NSG**: Allows SSH access from allowed CIDR blocks
    - **Private Compute NSG**: Allows SSH from bastion NSG and application traffic from load balancer subnet
    - **Load Balancer NSG**: Allows HTTP/HTTPS from allowed CIDR blocks and egress to private instances
-4. **IP Filtering**: Access to the load balancer and bastion host is restricted to specific CIDR blocks:
-   - Application access (HTTP/HTTPS): Restricted to internal network (10.0.0.0/8) and specific IPv6 range (2400:a844:4088::/48)
-   - SSH access: Configurable (default: 0.0.0.0/0, can be restricted to internal network)
+4. **Multi-layered IP Filtering**: Access control is implemented at multiple levels:
+   - **Network Security Groups (NSGs)**: Primary IP filtering at the network level
+     - Application access (HTTP/HTTPS): Restricted to internal network (10.0.0.0/8) and specific IPv6 range (2400:a844:4088::/48)
+     - SSH access: Configurable (default: 0.0.0.0/0, can be restricted to internal network)
+   - **WAF Path Filtering**: Application-level path-based access control
+     - Only allows access to `/ords/r/marinedataregister` path
+     - Blocks all other application paths by default
 
 ### Application Security
 
@@ -464,6 +468,7 @@ This configuration includes several security features to protect your infrastruc
    - Blocks all traffic by default
    - Only allows requests to specific paths (/ords/r/marinedataregister)
    - Provides protection against common web attacks
+   - Works in conjunction with NSGs for comprehensive security
 
 ### Host-Level Firewall
 

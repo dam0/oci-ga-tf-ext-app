@@ -147,40 +147,22 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
   request_access_control {
     default_action_name = "BLOCK_DEFAULT"
     
-    # Rule to allow access from allowed IPv4 CIDRs to marine data register
+    # Rule to allow access to marine data register path
     rules {
-      name                = "allow-marine-data-register-ipv4"
+      name                = "allow-marine-data-register"
       type                = "ACCESS_CONTROL"
       action_name         = "ALLOW_MARINE_DATA"
       condition_language  = "JMESPATH"
-      condition           = "starts_with(request.url.path, '/ords/r/marinedataregister') && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
+      condition           = "i_starts_with(http.request.url.path, '/ords/r/marinedataregister')"
     }
     
-    # Rule to allow access from allowed IPv6 CIDRs to marine data register
+    # Rule to allow health checks to root path
     rules {
-      name                = "allow-marine-data-register-ipv6"
+      name                = "allow-health-checks"
       type                = "ACCESS_CONTROL"
       action_name         = "ALLOW_MARINE_DATA"
       condition_language  = "JMESPATH"
-      condition           = "starts_with(request.url.path, '/ords/r/marinedataregister') && (${join(" || ", [for cidr in var.allowed_ipv6_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
-    }
-    
-    # Rule to allow health checks from allowed IPs
-    rules {
-      name                = "allow-health-checks-ipv4"
-      type                = "ACCESS_CONTROL"
-      action_name         = "ALLOW_MARINE_DATA"
-      condition_language  = "JMESPATH"
-      condition           = "request.url.path == '/' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
-    }
-    
-    # Rule to block requests from disallowed IPs
-    rules {
-      name                = "block-disallowed-ips"
-      type                = "ACCESS_CONTROL"
-      action_name         = "BLOCK_DEFAULT"
-      condition_language  = "JMESPATH"
-      condition           = "!(${join(" || ", [for cidr in concat(var.allowed_ipv4_cidr, var.allowed_ipv6_cidr) : "cidr_match(request.remote_address, '${cidr}')"])})"
+      condition           = "http.request.url.path == '/'"
     }
   }
   
