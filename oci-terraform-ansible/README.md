@@ -2,6 +2,21 @@
 
 This Terraform configuration provisions an Oracle Cloud Infrastructure (OCI) environment with a public bastion host and private instances, each with attached private IPs that can be detached for reuse. It also includes Ansible playbooks to provision the instances with Java, SQLCL, Oracle ORDS, and Tomcat server.
 
+## Architecture
+
+The project uses a modular architecture with the following components:
+
+### Modules
+- **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists
+- **Compute Module**: Creates instances with detachable private IPs
+- **Ansible Module**: Provisions instances using Ansible
+
+This modular approach provides several benefits:
+- **Reusability**: Modules can be reused across different projects
+- **Maintainability**: Each module has a single responsibility
+- **Scalability**: Easy to add or modify components without affecting the entire infrastructure
+- **Testability**: Modules can be tested independently
+
 ## Resources Created
 
 ### Infrastructure (Terraform)
@@ -75,6 +90,90 @@ If you need to run the Ansible provisioning manually:
    cd ansible
    ansible-playbook -i inventory/hosts.ini provision.yml
    ```
+
+## Module Usage
+
+### Network Module
+
+```hcl
+module "network" {
+  source = "./modules/network"
+
+  compartment_id = var.compartment_id
+  vcn_cidr       = "10.0.0.0/16"
+  
+  public_subnet_cidr  = "10.0.1.0/24"
+  private_subnet_cidr = "10.0.2.0/24"
+  
+  name_prefix = "test-ext"
+  dns_label   = "testextvcn"
+  
+  # Optional security settings
+  allow_http  = true
+  allow_https = true
+  app_ports   = [8080, 8443, 9090] # Tomcat and ORDS ports
+}
+```
+
+### Compute Module
+
+```hcl
+module "compute" {
+  source = "./modules/compute"
+  
+  compartment_id      = var.compartment_id
+  availability_domain = var.availability_domain
+  name_prefix         = "test-ext"
+  
+  # Instance configuration
+  instance_shape     = "VM.Standard.E4.Flex"
+  instance_image_ocid = var.instance_image_ocid
+  ssh_public_key     = var.ssh_public_key
+  
+  # Network references
+  public_subnet_id   = module.network.public_subnet_id
+  private_subnet_id  = module.network.private_subnet_id
+  public_subnet_cidr = module.network.public_subnet_cidr
+  private_subnet_cidr = module.network.private_subnet_cidr
+  
+  # Instance sizing
+  bastion_memory_in_gbs = 16
+  bastion_ocpus = 1
+  private_instance_memory_in_gbs = 16
+  private_instance_ocpus = 2
+  
+  # Private IP configuration
+  bastion_private_ip_host_num = 10
+  private_instance_ip_host_num = 10
+  secondary_instance_ip_host_num = 11
+  
+  # Optional second instance
+  create_second_instance = false
+}
+```
+
+### Ansible Module
+
+```hcl
+module "ansible" {
+  source = "./modules/ansible"
+  
+  # Instance references
+  bastion_id = module.compute.bastion_id
+  private_instance_id = module.compute.private_instance_id
+  private_instance_secondary_id = module.compute.private_instance_secondary_id
+  
+  # IP addresses for Ansible inventory
+  bastion_public_ip = module.compute.bastion_public_ip
+  private_instance_private_ip = module.compute.private_instance_private_ip
+  
+  # Ansible configuration
+  private_key_path = var.private_key_path
+  inventory_script_path = "./generate_inventory.sh"
+  ansible_dir = "ansible"
+  playbook_file = "provision.yml"
+}
+```
 
 ## Network Architecture
 
