@@ -13,6 +13,11 @@ module "network" {
   allow_http           = var.allow_http
   allow_https          = var.allow_https
   app_ports            = var.app_ports
+  
+  # IP Filtering
+  allowed_ipv4_cidr    = var.allowed_ipv4_cidr
+  allowed_ipv6_cidr    = var.allowed_ipv6_cidr
+  allowed_ssh_cidr     = var.allowed_ssh_cidr
 }
 
 # Bastion Module - Creates bastion host with reserved private IP
@@ -99,6 +104,10 @@ module "load_balancer" {
   enable_waf                           = var.enable_waf
   waf_rate_limit_requests_per_minute   = var.waf_rate_limit_requests_per_minute
   waf_allowed_paths                    = var.waf_allowed_paths
+  
+  # IP Filtering for WAF
+  allowed_ipv4_cidr                    = var.allowed_ipv4_cidr
+  allowed_ipv6_cidr                    = var.allowed_ipv6_cidr
   
   # Tagging
   freeform_tags = var.freeform_tags

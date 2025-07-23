@@ -240,6 +240,9 @@ This configuration creates a secure network architecture with:
 6. HTTP to HTTPS redirect for secure connections
 7. SSL certificate for HTTPS encryption
 8. Web Application Firewall (WAF) that blocks all traffic by default and only allows requests to specific paths (/ords/r/marinedataregister)
+9. IP filtering that restricts access to specific IPv4 and IPv6 CIDR blocks:
+   - Application access (HTTP/HTTPS): Restricted to internal network (10.0.0.0/8) and specific IPv6 range (2400:a844:4088::/48)
+   - SSH access: Configurable (default: 0.0.0.0/0, can be restricted to internal network)
 
 ## Accessing the Environment
 
@@ -349,6 +352,51 @@ The Ansible playbooks will install and configure:
 ### Customizing the Installation
 
 You can customize the software installation by modifying the variables in `ansible/group_vars/all.yml`.
+
+## Security Features
+
+This configuration includes several security features to protect your infrastructure:
+
+### Network Security
+
+1. **Private Subnet**: Application instances are deployed in a private subnet with no direct internet access.
+2. **Bastion Host**: All access to private instances is through a bastion host in the public subnet.
+3. **IP Filtering**: Access to the load balancer and bastion host is restricted to specific CIDR blocks:
+   - Application access (HTTP/HTTPS): Restricted to internal network (10.0.0.0/8) and specific IPv6 range (2400:a844:4088::/48)
+   - SSH access: Configurable (default: 0.0.0.0/0, can be restricted to internal network)
+
+### Application Security
+
+1. **HTTPS Encryption**: All HTTP traffic is automatically redirected to HTTPS.
+2. **SSL Certificate**: A valid SSL certificate is used for HTTPS connections.
+3. **Web Application Firewall (WAF)**: 
+   - Blocks all traffic by default
+   - Only allows requests to specific paths (/ords/r/marinedataregister)
+   - Provides protection against common web attacks
+
+### Customizing Security Settings
+
+You can customize the security settings by modifying the following variables:
+
+```hcl
+# IP Filtering
+variable "allowed_ipv4_cidr" {
+  default = ["10.0.0.0/8"]  # Restrict to internal network
+}
+
+variable "allowed_ipv6_cidr" {
+  default = ["2400:a844:4088::/48"]
+}
+
+variable "allowed_ssh_cidr" {
+  default = ["0.0.0.0/0"]  # Consider restricting to specific IPs for production
+}
+
+# WAF Configuration
+variable "waf_allowed_paths" {
+  default = ["/ords/r/marinedataregister"]
+}
+```
 
 ## Cleanup
 

@@ -52,3 +52,22 @@ variable "app_ports" {
   type        = list(number)
   default     = [8080, 8443, 9090] # Tomcat and ORDS ports
 }
+
+# IP Filtering Variables
+variable "allowed_ipv4_cidr" {
+  description = "List of allowed IPv4 CIDR blocks for application access"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
+
+variable "allowed_ipv6_cidr" {
+  description = "List of allowed IPv6 CIDR blocks for application access"
+  type        = list(string)
+  default     = []
+}
+
+variable "allowed_ssh_cidr" {
+  description = "List of allowed CIDR blocks for SSH access"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}

@@ -54,24 +54,27 @@ resource "oci_core_security_list" "public_security_list" {
   vcn_id         = oci_core_vcn.vcn.id
   display_name   = "${var.name_prefix}-public-security-list"
 
-  # Allow SSH traffic from anywhere
-  ingress_security_rules {
-    protocol  = "6" # TCP
-    source    = "0.0.0.0/0"
-    stateless = false
+  # Allow SSH traffic from allowed CIDR blocks
+  dynamic "ingress_security_rules" {
+    for_each = var.allowed_ssh_cidr
+    content {
+      protocol  = "6" # TCP
+      source    = ingress_security_rules.value
+      stateless = false
 
-    tcp_options {
-      min = 22
-      max = 22
+      tcp_options {
+        min = 22
+        max = 22
+      }
     }
   }
 
-  # Allow HTTP traffic from anywhere (optional)
+  # Allow HTTP traffic from allowed IPv4 CIDR blocks (optional)
   dynamic "ingress_security_rules" {
-    for_each = var.allow_http ? [1] : []
+    for_each = var.allow_http ? var.allowed_ipv4_cidr : []
     content {
       protocol  = "6" # TCP
-      source    = "0.0.0.0/0"
+      source    = ingress_security_rules.value
       stateless = false
 
       tcp_options {
@@ -81,13 +84,45 @@ resource "oci_core_security_list" "public_security_list" {
     }
   }
 
-  # Allow HTTPS traffic from anywhere (optional)
+  # Allow HTTP traffic from allowed IPv6 CIDR blocks (optional)
   dynamic "ingress_security_rules" {
-    for_each = var.allow_https ? [1] : []
+    for_each = var.allow_http ? var.allowed_ipv6_cidr : []
     content {
       protocol  = "6" # TCP
-      source    = "0.0.0.0/0"
+      source    = ingress_security_rules.value
       stateless = false
+      source_type = "CIDR_BLOCK"
+
+      tcp_options {
+        min = 80
+        max = 80
+      }
+    }
+  }
+
+  # Allow HTTPS traffic from allowed IPv4 CIDR blocks (optional)
+  dynamic "ingress_security_rules" {
+    for_each = var.allow_https ? var.allowed_ipv4_cidr : []
+    content {
+      protocol  = "6" # TCP
+      source    = ingress_security_rules.value
+      stateless = false
+
+      tcp_options {
+        min = 443
+        max = 443
+      }
+    }
+  }
+
+  # Allow HTTPS traffic from allowed IPv6 CIDR blocks (optional)
+  dynamic "ingress_security_rules" {
+    for_each = var.allow_https ? var.allowed_ipv6_cidr : []
+    content {
+      protocol  = "6" # TCP
+      source    = ingress_security_rules.value
+      stateless = false
+      source_type = "CIDR_BLOCK"
 
       tcp_options {
         min = 443
