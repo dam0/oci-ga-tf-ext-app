@@ -1,7 +1,7 @@
 ---
 # Java settings
-java_version: "11"
-java_package: "java-11-openjdk-devel"
+java_version: "21"
+java_package: "java-21-openjdk-devel"
 
 # Tomcat settings
 tomcat_version: "9.0.71"
@@ -13,12 +13,12 @@ tomcat_admin_username: "admin"
 tomcat_admin_password: "admin_password"  # Change this in production
 
 # SQLCL settings
-sqlcl_version: "23.2.0"
+sqlcl_version: "latest"
 sqlcl_url: "https://download.oracle.com/otn_software/java/sqldeveloper/sqlcl-{{ sqlcl_version }}.zip"
 sqlcl_install_dir: "/opt/sqlcl"
 
 # Oracle ORDS settings
-ords_version: "22.4.0"
+ords_version: "latest"
 ords_url: "https://download.oracle.com/otn_software/java/ords/ords-{{ ords_version }}.zip"
 ords_install_dir: "/opt/ords"
 ords_config_dir: "/etc/ords"

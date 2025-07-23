@@ -2,21 +2,21 @@
 resource "oci_core_vcn" "vcn" {
   cidr_block     = var.vcn_cidr
   compartment_id = var.compartment_id
-  display_name   = "terraform-vcn"
-  dns_label      = "terraformvcn"
+  display_name   = "test-ext-vcn"
+  dns_label      = "testextvcn"
 }
 
 # Create an Internet Gateway
 resource "oci_core_internet_gateway" "internet_gateway" {
   compartment_id = var.compartment_id
-  display_name   = "terraform-internet-gateway"
+  display_name   = "test-ext-internet-gateway"
   vcn_id         = oci_core_vcn.vcn.id
 }
 
 # Create a NAT Gateway for the private subnet
 resource "oci_core_nat_gateway" "nat_gateway" {
   compartment_id = var.compartment_id
-  display_name   = "terraform-nat-gateway"
+  display_name   = "test-ext-nat-gateway"
   vcn_id         = oci_core_vcn.vcn.id
 }
 
@@ -24,7 +24,7 @@ resource "oci_core_nat_gateway" "nat_gateway" {
 resource "oci_core_route_table" "public_route_table" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "terraform-public-route-table"
+  display_name   = "test-ext-public-route-table"
 
   route_rules {
     destination       = "0.0.0.0/0"
@@ -37,7 +37,7 @@ resource "oci_core_route_table" "public_route_table" {
 resource "oci_core_route_table" "private_route_table" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "terraform-private-route-table"
+  display_name   = "test-ext-private-route-table"
 
   route_rules {
     destination       = "0.0.0.0/0"
@@ -50,7 +50,7 @@ resource "oci_core_route_table" "private_route_table" {
 resource "oci_core_security_list" "public_security_list" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "terraform-public-security-list"
+  display_name   = "test-ext-public-security-list"
 
   # Allow SSH traffic from anywhere
   ingress_security_rules {
@@ -76,7 +76,7 @@ resource "oci_core_security_list" "public_security_list" {
 resource "oci_core_security_list" "private_security_list" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "terraform-private-security-list"
+  display_name   = "test-ext-private-security-list"
 
   # Allow SSH traffic from the public subnet only
   ingress_security_rules {
@@ -103,7 +103,7 @@ resource "oci_core_subnet" "public_subnet" {
   cidr_block        = var.public_subnet_cidr
   compartment_id    = var.compartment_id
   vcn_id            = oci_core_vcn.vcn.id
-  display_name      = "terraform-public-subnet"
+  display_name      = "test-ext-public-subnet"
   route_table_id    = oci_core_route_table.public_route_table.id
   security_list_ids = [oci_core_security_list.public_security_list.id]
   dns_label         = "public"
@@ -114,7 +114,7 @@ resource "oci_core_subnet" "private_subnet" {
   cidr_block                 = var.private_subnet_cidr
   compartment_id             = var.compartment_id
   vcn_id                     = oci_core_vcn.vcn.id
-  display_name               = "terraform-private-subnet"
+  display_name               = "test-ext-private-subnet"
   route_table_id             = oci_core_route_table.private_route_table.id
   security_list_ids          = [oci_core_security_list.private_security_list.id]
   dns_label                  = "private"
@@ -125,14 +125,19 @@ resource "oci_core_subnet" "private_subnet" {
 resource "oci_core_instance" "bastion" {
   availability_domain = var.availability_domain
   compartment_id      = var.compartment_id
-  display_name        = "terraform-bastion"
+  display_name        = "test-ext-bastion"
   shape               = var.instance_shape
+
+  shape_config {
+    memory_in_gbs = 16
+    ocpus         = 1
+  }
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.public_subnet.id
-    display_name     = "terraform-bastion-vnic"
+    display_name     = "test-ext-bastion-vnic"
     assign_public_ip = true
-    hostname_label   = "bastion"
+    hostname_label   = "ext-bastion"
   }
 
   source_details {
@@ -147,7 +152,7 @@ resource "oci_core_instance" "bastion" {
 
 # Create a reserved private IP for the bastion that can be detached and reused
 resource "oci_core_private_ip" "bastion_private_ip" {
-  display_name   = "terraform-bastion-private-ip"
+  display_name   = "test-ext-bastion-private-ip"
   ip_address     = cidrhost(var.public_subnet_cidr, 10) # Assign a specific IP in the public subnet
   vnic_id        = oci_core_vnic_attachment.bastion_vnic_attachment.vnic_id
   hostname_label = "bastion-private-ip"
@@ -164,11 +169,11 @@ resource "oci_core_private_ip" "bastion_private_ip" {
 # Create a VNIC attachment for the bastion's reserved private IP
 resource "oci_core_vnic_attachment" "bastion_vnic_attachment" {
   instance_id  = oci_core_instance.bastion.id
-  display_name = "terraform-bastion-secondary-vnic"
+  display_name = "test-ext-bastion-secondary-vnic"
 
   create_vnic_details {
     subnet_id              = oci_core_subnet.public_subnet.id
-    display_name           = "terraform-bastion-secondary-vnic"
+    display_name           = "test-ext-bastion-secondary-vnic"
     assign_public_ip       = false
     skip_source_dest_check = false
   }
@@ -203,14 +208,19 @@ resource "null_resource" "detach_bastion_private_ip" {
 resource "oci_core_instance" "private_instance" {
   availability_domain = var.availability_domain
   compartment_id      = var.compartment_id
-  display_name        = "terraform-private-instance"
+  display_name        = "test-ext-private-instance"
   shape               = var.instance_shape
+
+  shape_config {
+    memory_in_gbs = 16
+    ocpus         = 2
+  }
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.private_subnet.id
-    display_name     = "terraform-private-instance-vnic"
+    display_name     = "test-ext-private-instance-vnic"
     assign_public_ip = false
-    hostname_label   = "private"
+    hostname_label   = "ext-private"
   }
 
   source_details {
@@ -225,7 +235,7 @@ resource "oci_core_instance" "private_instance" {
 
 # Create a reserved private IP for the private instance that can be detached and reused
 resource "oci_core_private_ip" "private_instance_private_ip" {
-  display_name   = "terraform-private-instance-private-ip"
+  display_name   = "test-ext-private-instance-private-ip"
   ip_address     = cidrhost(var.private_subnet_cidr, 10) # Assign a specific IP in the private subnet
   vnic_id        = oci_core_vnic_attachment.private_instance_vnic_attachment.vnic_id
   hostname_label = "private-instance-private-ip"
@@ -242,11 +252,11 @@ resource "oci_core_private_ip" "private_instance_private_ip" {
 # Create a VNIC attachment for the private instance's reserved private IP
 resource "oci_core_vnic_attachment" "private_instance_vnic_attachment" {
   instance_id  = oci_core_instance.private_instance.id
-  display_name = "terraform-private-instance-secondary-vnic"
+  display_name = "test-ext-private-instance-secondary-vnic"
 
   create_vnic_details {
     subnet_id              = oci_core_subnet.private_subnet.id
-    display_name           = "terraform-private-instance-secondary-vnic"
+    display_name           = "test-ext-private-instance-secondary-vnic"
     assign_public_ip       = false
     skip_source_dest_check = false
   }
@@ -282,12 +292,12 @@ resource "oci_core_instance" "private_instance_secondary" {
   count               = var.create_second_instance ? 1 : 0
   availability_domain = var.availability_domain
   compartment_id      = var.compartment_id
-  display_name        = "terraform-private-instance-secondary"
+  display_name        = "test-ext-private-instance-secondary"
   shape               = var.instance_shape
 
   create_vnic_details {
     subnet_id        = oci_core_subnet.private_subnet.id
-    display_name     = "terraform-private-instance-secondary-vnic"
+    display_name     = "test-ext-private-instance-secondary-vnic"
     assign_public_ip = false
     hostname_label   = "private2"
   }
@@ -305,7 +315,7 @@ resource "oci_core_instance" "private_instance_secondary" {
 # Create a reserved private IP for the second private instance that can be detached and reused
 resource "oci_core_private_ip" "private_instance_secondary_private_ip" {
   count          = var.create_second_instance ? 1 : 0
-  display_name   = "terraform-private-instance-secondary-private-ip"
+  display_name   = "test-ext-private-instance-secondary-private-ip"
   ip_address     = cidrhost(var.private_subnet_cidr, 11) # Assign a different specific IP in the private subnet
   vnic_id        = oci_core_vnic_attachment.private_instance_secondary_vnic_attachment[0].vnic_id
   hostname_label = "private-instance-secondary-private-ip"
@@ -323,11 +333,11 @@ resource "oci_core_private_ip" "private_instance_secondary_private_ip" {
 resource "oci_core_vnic_attachment" "private_instance_secondary_vnic_attachment" {
   count        = var.create_second_instance ? 1 : 0
   instance_id  = oci_core_instance.private_instance_secondary[0].id
-  display_name = "terraform-private-instance-secondary-vnic-attachment"
+  display_name = "test-ext-private-instance-secondary-vnic-attachment"
 
   create_vnic_details {
     subnet_id              = oci_core_subnet.private_subnet.id
-    display_name           = "terraform-private-instance-secondary-secondary-vnic"
+    display_name           = "test-ext-private-instance-secondary-secondary-vnic"
     assign_public_ip       = false
     skip_source_dest_check = false
   }
@@ -360,7 +370,7 @@ resource "null_resource" "detach_private_instance_secondary_private_ip" {
   depends_on = [oci_core_private_ip.private_instance_secondary_private_ip]
 }
 
-# Null resource to run Ansible provisioning after Terraform completes
+# Null resource to run Ansible provisioning after test-ext completes
 resource "null_resource" "ansible_provisioning" {
   # Only run when instances are created or updated
   triggers = {
@@ -369,20 +379,20 @@ resource "null_resource" "ansible_provisioning" {
     second_private_instance_id = var.create_second_instance ? oci_core_instance.private_instance_secondary[0].id : "none"
   }
 
-  # Generate Ansible inventory from Terraform outputs
+  # Generate Ansible inventory from test-ext outputs
   provisioner "local-exec" {
     command = <<-EOT
       # Wait for instances to be fully initialized
-      sleep 60
-      
+      sleep 120
+
       # Export SSH key path (update this with your actual SSH key path)
       export SSH_PRIVATE_KEY_PATH=${var.private_key_path}
-      
+
       # Generate Ansible inventory
       ./generate_inventory.sh
-      
-      # Run Ansible playbook
-      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml
+
+      # Run Ansible playbook only on private instances, using bastion as jump host
+      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml --limit private_instances --private-key ${var.private_key_path} -e "ansible_user=opc ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %h:%p -i ${var.private_key_path} -o StrictHostKeyChecking=no bastion\"'"
     EOT
   }
 

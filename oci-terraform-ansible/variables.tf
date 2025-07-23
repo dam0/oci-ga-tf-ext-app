@@ -3,15 +3,15 @@ variable "tenancy_ocid" {
   type        = string
 }
 
-variable "user_ocid" {
-  description = "The OCID of the user"
-  type        = string
-}
+# variable "user_ocid" {
+#   description = "The OCID of the user"
+#   type        = string
+# }
 
-variable "fingerprint" {
-  description = "The fingerprint of the key"
-  type        = string
-}
+# variable "fingerprint" {
+#   description = "The fingerprint of the key"
+#   type        = string
+# }
 
 variable "private_key_path" {
   description = "The path to the private key"
@@ -41,7 +41,7 @@ variable "ssh_public_key" {
 variable "instance_shape" {
   description = "The shape of the instance"
   type        = string
-  default     = "VM.Standard2.1"
+  default     = "VM.Standard.E4.Flex"
 }
 
 variable "instance_image_ocid" {
