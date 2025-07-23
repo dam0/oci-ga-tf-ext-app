@@ -166,34 +166,6 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
     }
   }
   
-  # Request Protection Rules (OWASP protection)
-  request_protection {
-    # Protection against common web attacks
-    rules {
-      name                = "protect-against-sqli"
-      type                = "PROTECTION"
-      action_name         = "BLOCK_DEFAULT"
-      condition_language  = "JMESPATH"
-      condition           = "keys(request.headers)[?lower(@) == 'user-agent'] | [0]"
-      protection_capabilities {
-        key     = "920350"  # SQL Injection Attack
-        version = 1
-      }
-    }
-    
-    rules {
-      name                = "protect-against-xss"
-      type                = "PROTECTION"
-      action_name         = "BLOCK_DEFAULT"
-      condition_language  = "JMESPATH"
-      condition           = "keys(request.headers)[?lower(@) == 'user-agent'] | [0]"
-      protection_capabilities {
-        key     = "941100"  # XSS Attack
-        version = 1
-      }
-    }
-  }
-  
   # Request Rate Limiting
   request_rate_limiting {
     rules {
@@ -201,23 +173,12 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
       type                = "REQUEST_RATE_LIMITING"
       action_name         = "BLOCK_DEFAULT"
       condition_language  = "JMESPATH"
-      condition           = "request.url.path =~ '/ords/r/marinedataregister*'"
+      condition           = "i_starts_with(http.request.url.path, '/ords/r/marinedataregister')"
       configurations {
         period_in_seconds         = 60
         requests_limit           = var.waf_rate_limit_requests_per_minute
         action_duration_in_seconds = 300
       }
-    }
-  }
-  
-  # Response Access Control (optional)
-  response_access_control {
-    rules {
-      name                = "response-security-headers"
-      type                = "ACCESS_CONTROL"
-      action_name         = "ALLOW_MARINE_DATA"
-      condition_language  = "JMESPATH"
-      condition           = "true"
     }
   }
   
