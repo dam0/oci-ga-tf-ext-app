@@ -27,7 +27,7 @@ mkdir -p ansible/inventory
 # Create Ansible inventory file
 cat > ansible/inventory/hosts.ini << EOF
 [bastion]
-bastion_host ansible_host=${BASTION_PUBLIC_IP} ansible_user=opc
+bastion ansible_host=${BASTION_PUBLIC_IP} ansible_user=opc
 
 [private_instances]
 EOF

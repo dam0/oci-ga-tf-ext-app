@@ -275,8 +275,8 @@ resource "oci_core_network_security_group_security_rule" "private_ssh_from_basti
   description = "Allow SSH access from bastion host"
 }
 
-# Allow application ports from load balancer subnet (CIDR-based for broader compatibility)
-resource "oci_core_network_security_group_security_rule" "private_app_ports_cidr" {
+# Allow application ports from load balancer subnet
+resource "oci_core_network_security_group_security_rule" "private_app_ports" {
   for_each = toset([for port in var.app_ports : tostring(port)])
   
   network_security_group_id = oci_core_network_security_group.private_compute_nsg.id
@@ -294,27 +294,6 @@ resource "oci_core_network_security_group_security_rule" "private_app_ports_cidr
   }
   
   description = "Allow application traffic on port ${each.value} from load balancer subnet"
-}
-
-# Allow application ports from load balancer NSG (NSG-to-NSG for enhanced security)
-resource "oci_core_network_security_group_security_rule" "private_app_ports_from_lb_nsg" {
-  for_each = toset([for port in var.app_ports : tostring(port)])
-  
-  network_security_group_id = oci_core_network_security_group.private_compute_nsg.id
-  direction                 = "INGRESS"
-  protocol                  = "6" # TCP
-  source                    = oci_core_network_security_group.load_balancer_nsg.id
-  source_type              = "NETWORK_SECURITY_GROUP"
-  stateless                = false
-  
-  tcp_options {
-    destination_port_range {
-      min = tonumber(each.value)
-      max = tonumber(each.value)
-    }
-  }
-  
-  description = "Allow application traffic on port ${each.value} from load balancer NSG"
 }
 
 resource "oci_core_network_security_group_security_rule" "private_egress_all" {
@@ -379,8 +358,7 @@ resource "oci_core_network_security_group_security_rule" "lb_https_ingress" {
   description = "Allow HTTPS traffic from ${each.value}"
 }
 
-# Load balancer egress to private subnet (CIDR-based for broader compatibility)
-resource "oci_core_network_security_group_security_rule" "lb_egress_to_private_cidr" {
+resource "oci_core_network_security_group_security_rule" "lb_egress_to_private" {
   for_each = toset([for port in var.app_ports : tostring(port)])
   
   network_security_group_id = oci_core_network_security_group.load_balancer_nsg.id
@@ -397,26 +375,5 @@ resource "oci_core_network_security_group_security_rule" "lb_egress_to_private_c
     }
   }
   
-  description = "Allow outbound traffic to private subnet on port ${each.value}"
-}
-
-# Load balancer egress to private compute NSG (NSG-to-NSG for enhanced security)
-resource "oci_core_network_security_group_security_rule" "lb_egress_to_private_nsg" {
-  for_each = toset([for port in var.app_ports : tostring(port)])
-  
-  network_security_group_id = oci_core_network_security_group.load_balancer_nsg.id
-  direction                 = "EGRESS"
-  protocol                  = "6" # TCP
-  destination               = oci_core_network_security_group.private_compute_nsg.id
-  destination_type         = "NETWORK_SECURITY_GROUP"
-  stateless                = false
-  
-  tcp_options {
-    destination_port_range {
-      min = tonumber(each.value)
-      max = tonumber(each.value)
-    }
-  }
-  
-  description = "Allow outbound traffic to private compute NSG on port ${each.value}"
+  description = "Allow outbound traffic to private instances on port ${each.value}"
 }

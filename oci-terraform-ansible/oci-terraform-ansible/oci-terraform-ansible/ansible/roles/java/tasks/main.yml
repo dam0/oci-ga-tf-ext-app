@@ -1,0 +1,19 @@
+---
+- name: Install Java
+  dnf:
+    name: "{{ java_package }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Set JAVA_HOME environment variable
+  lineinfile:
+    path: /etc/profile.d/java.sh
+    create: yes
+    line: 'export JAVA_HOME=/usr/lib/jvm/jre-{{ java_version }}'
+    mode: '0644'
+
+- name: Source Java environment variables
+  shell: source /etc/profile.d/java.sh
+  args:
+    executable: /bin/bash
+  changed_when: false

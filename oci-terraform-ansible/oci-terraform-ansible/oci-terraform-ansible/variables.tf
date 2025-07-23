@@ -172,9 +172,9 @@ variable "private_instance_user_data" {
 
 # Ansible Configuration
 variable "enable_ansible_provisioning" {
-  description = "Whether to run Ansible provisioning after infrastructure creation (disabled by default - use run_ansible.sh script instead)"
+  description = "Whether to run Ansible provisioning after infrastructure creation"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # Load Balancer Configuration
@@ -272,23 +272,4 @@ variable "defined_tags" {
   description = "Defined tags for all resources"
   type        = map(string)
   default     = {}
-}
-
-# IAM Policy Variables
-variable "create_load_balancer_policies" {
-  description = "Whether to create load balancer service policies"
-  type        = bool
-  default     = true
-}
-
-variable "enable_dynamic_group_policies" {
-  description = "Whether to create dynamic group policies for load balancer"
-  type        = bool
-  default     = false
-}
-
-variable "create_health_check_policies" {
-  description = "Whether to create health check service policies"
-  type        = bool
-  default     = false
 }
