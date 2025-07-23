@@ -143,14 +143,14 @@ resource "null_resource" "ansible_provisioning" {
       # Wait for instances to be fully initialized
       sleep 120
 
-      # Export SSH key path
+      # Export SSH key path for inventory generation
       export SSH_PRIVATE_KEY_PATH=${var.private_key_path}
 
       # Generate Ansible inventory
       ./generate_inventory.sh
 
-      # Run Ansible playbook
-      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml --limit private_instances --private-key ${var.private_key_path} -e "ansible_user=opc ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %h:%p -i ${var.private_key_path} -o StrictHostKeyChecking=no bastion\"'"
+      # Run Ansible playbook with proper SSH configuration
+      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml --limit private_instances -v
     EOT
   }
 
