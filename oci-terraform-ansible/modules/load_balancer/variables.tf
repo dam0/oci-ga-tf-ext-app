@@ -70,7 +70,7 @@ variable "is_private" {
 variable "backend_set_name" {
   description = "Name for the backend set"
   type        = string
-  default     = "tomcat-backend-set"
+  default     = "tomcat_backend_set"
 }
 
 variable "backend_policy" {

@@ -62,7 +62,7 @@ resource "oci_load_balancer_backend" "tomcat_backends" {
 # Create a rule set for HTTP to HTTPS redirect
 resource "oci_load_balancer_rule_set" "http_to_https_redirect" {
   load_balancer_id = oci_load_balancer_load_balancer.lb.id
-  name             = "${var.name_prefix}-http-to-https-redirect"
+  name             = "${replace(var.name_prefix, "-", "_")}_http_to_https_redirect"
   
   items {
     action = "REDIRECT"
@@ -85,7 +85,7 @@ resource "oci_load_balancer_rule_set" "http_to_https_redirect" {
 # Create HTTP listener (port 80) with redirect to HTTPS
 resource "oci_load_balancer_listener" "http_listener" {
   load_balancer_id         = oci_load_balancer_load_balancer.lb.id
-  name                     = "${var.name_prefix}-http-listener"
+  name                     = "${replace(var.name_prefix, "-", "_")}_http_listener"
   default_backend_set_name = oci_load_balancer_backend_set.tomcat_backend_set.name
   port                     = 80
   protocol                 = "HTTP"
@@ -100,7 +100,7 @@ resource "oci_load_balancer_listener" "http_listener" {
 # Create HTTPS listener (port 443) using existing certificate OCID
 resource "oci_load_balancer_listener" "https_listener" {
   load_balancer_id         = oci_load_balancer_load_balancer.lb.id
-  name                     = "${var.name_prefix}-https-listener"
+  name                     = "${replace(var.name_prefix, "-", "_")}_https_listener"
   default_backend_set_name = oci_load_balancer_backend_set.tomcat_backend_set.name
   port                     = 443
   protocol                 = "HTTP"
