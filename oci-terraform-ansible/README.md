@@ -391,7 +391,13 @@ The Ansible playbooks will install and configure:
    - Accessible on port 8888
    - Configured to connect to your Oracle database
 
-5. **Firewall Configuration** - Configured on all instances using firewalld
+5. **Oracle APEX 24.1 Images** - Installed on private instances
+   - APEX static images served through Tomcat at `/i/` context path
+   - Accessible at `http://server:8080/i/`
+   - Includes all APEX UI themes, libraries, and resources
+   - Properly configured with caching for optimal performance
+
+6. **Firewall Configuration** - Configured on all instances using firewalld
    - **Bastion hosts**: SSH (port 22) only
    - **Private instances**: SSH (port 22), Tomcat (port 8080), and ORDS (port 8888)
    - Automatic firewall rule verification and status reporting
@@ -399,6 +405,40 @@ The Ansible playbooks will install and configure:
 ### Customizing the Installation
 
 You can customize the software installation by modifying the variables in `ansible/group_vars/all.yml`.
+
+### APEX Configuration
+
+The Oracle APEX 24.1 images are automatically installed and configured:
+
+- **Installation Directory**: `/opt/apex` - Contains the full APEX installation
+- **Images Directory**: `/opt/tomcat/webapps/i` - APEX static images served by Tomcat
+- **Context Path**: `/i/` - URL path for accessing APEX images
+- **Verification Script**: `/opt/apex/verify-apex-images.sh` - Script to verify APEX installation
+
+#### Testing APEX Installation
+
+You can test the APEX installation using the provided test playbook:
+
+```bash
+cd ansible
+ansible-playbook -i inventory/hosts.ini test-apex.yml
+```
+
+Or run the verification script directly on the instances:
+
+```bash
+# On the private instances
+sudo /opt/apex/verify-apex-images.sh
+```
+
+#### APEX Images URL
+
+Once deployed, APEX images will be accessible at:
+- `http://your-load-balancer-ip/i/` (redirects to HTTPS)
+- `https://your-load-balancer-ip/i/`
+
+Example APEX image URL:
+- `https://your-load-balancer-ip/i/apex_ui/img/apex_logo.png`
 
 ## Security Features
 

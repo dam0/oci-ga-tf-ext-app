@@ -153,7 +153,7 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
       type                = "ACCESS_CONTROL"
       action_name         = "ALLOW_MARINE_DATA"
       condition_language  = "JMESPATH"
-      condition           = "request.url.path =~ '/ords/r/marinedataregister*' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+      condition           = "starts_with(request.url.path, '/ords/r/marinedataregister') && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
     }
     
     # Rule to allow access from allowed IPv6 CIDRs to marine data register
@@ -162,7 +162,7 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
       type                = "ACCESS_CONTROL"
       action_name         = "ALLOW_MARINE_DATA"
       condition_language  = "JMESPATH"
-      condition           = "request.url.path =~ '/ords/r/marinedataregister*' && (${join(" || ", [for cidr in var.allowed_ipv6_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+      condition           = "starts_with(request.url.path, '/ords/r/marinedataregister') && (${join(" || ", [for cidr in var.allowed_ipv6_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
     }
     
     # Rule to allow health checks from allowed IPs
@@ -171,7 +171,7 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
       type                = "ACCESS_CONTROL"
       action_name         = "ALLOW_MARINE_DATA"
       condition_language  = "JMESPATH"
-      condition           = "request.url.path == '/' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "request.remote_address | cidr_match('${cidr}')"])})"
+      condition           = "request.url.path == '/' && (${join(" || ", [for cidr in var.allowed_ipv4_cidr : "cidr_match(request.remote_address, '${cidr}')"])})"
     }
     
     # Rule to block requests from disallowed IPs
@@ -180,7 +180,7 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
       type                = "ACCESS_CONTROL"
       action_name         = "BLOCK_DEFAULT"
       condition_language  = "JMESPATH"
-      condition           = "!(${join(" || ", [for cidr in concat(var.allowed_ipv4_cidr, var.allowed_ipv6_cidr) : "request.remote_address | cidr_match('${cidr}')"])})"
+      condition           = "!(${join(" || ", [for cidr in concat(var.allowed_ipv4_cidr, var.allowed_ipv6_cidr) : "cidr_match(request.remote_address, '${cidr}')"])})"
     }
   }
   

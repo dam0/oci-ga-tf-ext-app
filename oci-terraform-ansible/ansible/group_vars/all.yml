@@ -28,8 +28,12 @@ ords_config_dir: "/etc/ords"
 ords_port: 8888
 
 # APEX settings
-apex_zip_url: "https://download.oracle.com/otn_software/apex/apex_{{ apex_version }}_en.zip"
 apex_version: "24.1"
+apex_zip_url: "https://download.oracle.com/otn_software/apex/apex_{{ apex_version }}_en.zip"
+apex_install_dir: "/opt/apex"
+apex_images_dir: "{{ tomcat_home }}/webapps/i"
+apex_context_path: "/i"
+cleanup_temp_files: false  # Set to true to clean up temporary files after installation
 
 # Firewall configuration
 configure_firewall: true

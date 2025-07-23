@@ -16,5 +16,6 @@
     - firewall
     - java
     - tomcat
+    - apex
     - sqlcl
     - ords
