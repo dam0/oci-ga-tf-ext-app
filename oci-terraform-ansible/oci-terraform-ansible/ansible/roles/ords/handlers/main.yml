@@ -1,0 +1,11 @@
+---
+- name: restart ords
+  systemd:
+    name: ords
+    state: restarted
+    daemon_reload: yes
+
+- name: reload firewall
+  systemd:
+    name: firewalld
+    state: reloaded

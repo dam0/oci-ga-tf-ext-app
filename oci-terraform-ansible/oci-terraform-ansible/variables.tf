@@ -172,9 +172,9 @@ variable "private_instance_user_data" {
 
 # Ansible Configuration
 variable "enable_ansible_provisioning" {
-  description = "Whether to run Ansible provisioning after infrastructure creation (disabled by default - use run_ansible.sh script instead)"
+  description = "Whether to run Ansible provisioning after infrastructure creation"
   type        = bool
-  default     = false
+  default     = true
 }
 
 # Load Balancer Configuration
