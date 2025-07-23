@@ -1,0 +1,74 @@
+# Example Terraform Variables for Modular OCI Infrastructure
+
+# OCI Provider Configuration
+tenancy_ocid     = "ocid1.tenancy.oc1..example"
+user_ocid        = "ocid1.user.oc1..example"
+fingerprint      = "aa:bb:cc:dd:ee:ff:gg:hh:ii:jj:kk:ll:mm:nn:oo:pp"
+private_key_path = "~/.oci/oci_api_key.pem"
+region           = "us-ashburn-1"
+compartment_id   = "ocid1.compartment.oc1..example"
+availability_domain = "Uocm:US-ASHBURN-AD-1"
+
+# Network Configuration
+vcn_cidr             = "10.0.0.0/16"
+public_subnet_cidr   = "10.0.1.0/24"
+private_subnet_cidr  = "10.0.2.0/24"
+name_prefix          = "oci-ext"
+dns_label            = "ociextvcn"
+allow_http           = false
+allow_https          = false
+app_ports            = [8080, 8443, 9090]
+
+# Instance Configuration
+instance_shape      = "VM.Standard.E4.Flex"
+instance_image_ocid = "ocid1.image.oc1.us-ashburn-1.example" # Oracle Linux 8
+ssh_public_key      = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ... your-public-key"
+
+# Bastion Configuration
+bastion_shape_config = {
+  memory_in_gbs = 16
+  ocpus         = 1
+}
+create_bastion_reserved_ip    = true
+bastion_reserved_ip_address   = null # Auto-assign from subnet
+bastion_user_data            = null
+
+# Private Instance Configuration
+private_instance_count = 2
+private_instance_shape_config = {
+  memory_in_gbs = 16
+  ocpus         = 2
+}
+create_private_reserved_ips     = true
+private_reserved_ip_addresses   = null # Auto-assign from subnet
+private_instance_user_data      = null
+
+# Load Balancer Configuration
+certificate_ocid = "ocid1.certificate.oc1.ap-sydney-1.amaaaaaauvuxtpqavipyy4kzf6dtloospnhtfqmq42fkhbneskpxjuwyzs5q"
+lb_shape = "flexible"
+lb_min_bandwidth_mbps = 10
+lb_max_bandwidth_mbps = 100
+lb_is_private = false
+tomcat_port = 8080
+health_check_url_path = "/"
+
+# WAF Configuration
+enable_waf = true
+waf_rate_limit_requests_per_minute = 100
+waf_allowed_paths = ["/ords/r/marinedataregister", "/"]
+
+# IP Filtering Configuration
+allowed_ipv6_cidr = ["2400:a844:4088::/48"]
+allowed_ipv4_cidr = ["10.0.0.0/8"]  # Example: Restrict to internal network
+allowed_ssh_cidr = ["0.0.0.0/0"]    # ["10.0.0.0/8"]  # Example: Restrict SSH access to internal network
+
+# Ansible Configuration
+enable_ansible_provisioning = true
+
+# Tags
+freeform_tags = {
+  "Environment" = "development"
+  "Project"     = "oci-terraform-ansible"
+  "Owner"       = "your-name"
+}
+defined_tags = {}

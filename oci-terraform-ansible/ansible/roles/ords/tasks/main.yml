@@ -1,0 +1,59 @@
+---
+- name: Create ORDS installation directory
+  file:
+    path: "{{ ords_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Create ORDS configuration directory
+  file:
+    path: "{{ ords_config_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Download ORDS
+  get_url:
+    url: "{{ ords_url }}"
+    dest: "/tmp/ords-{{ ords_version }}.zip"
+    mode: '0644'
+    timeout: 300
+  register: download_ords
+  retries: 3
+  delay: 5
+  until: download_ords is succeeded
+
+- name: Extract ORDS
+  unarchive:
+    src: "/tmp/ords-{{ ords_version }}.zip"
+    dest: "{{ ords_install_dir }}"
+    remote_src: yes
+    creates: "{{ ords_install_dir }}/ords.war"
+
+- name: Create ORDS configuration file
+  template:
+    src: ords_params.properties.j2
+    dest: "{{ ords_config_dir }}/ords_params.properties"
+    mode: '0640'
+
+- name: Create ORDS systemd service file
+  template:
+    src: ords.service.j2
+    dest: /etc/systemd/system/ords.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart ords
+
+- name: Allow ORDS through firewall
+  firewalld:
+    port: "{{ ords_port }}/tcp"
+    permanent: yes
+    state: enabled
+  notify: reload firewall
+
+- name: Start and enable ORDS service
+  systemd:
+    name: ords
+    state: started
+    enabled: yes
+    daemon_reload: yes

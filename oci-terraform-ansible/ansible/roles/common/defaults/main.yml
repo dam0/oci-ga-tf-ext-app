@@ -1,0 +1,11 @@
+---
+# Firewall configuration
+firewall_allowed_ports:
+  - 8080/tcp  # Tomcat HTTP
+  - 8888/tcp  # Custom application
+
+firewall_allowed_services:
+  - ssh       # SSH access (port 22)
+
+# Enable firewall configuration
+configure_firewall: true

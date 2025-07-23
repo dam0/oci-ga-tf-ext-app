@@ -1,0 +1,103 @@
+---
+- name: Ensure firewalld is installed
+  dnf:
+    name: firewalld
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Set default firewall zone
+  command: firewall-cmd --set-default-zone={{ firewall_zone }}
+  when: configure_firewall
+  changed_when: false
+
+- name: Configure firewall - Allow default services
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_default_services }}"
+  when: configure_firewall
+  notify: reload firewalld
+
+- name: Configure firewall - Allow default ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_default_ports }}"
+  when: configure_firewall and firewall_default_ports | length > 0
+  notify: reload firewalld
+
+- name: Configure firewall - Allow bastion-specific services
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_bastion_services }}"
+  when: configure_firewall and inventory_hostname in groups['bastion']
+  notify: reload firewalld
+
+- name: Configure firewall - Allow bastion-specific ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_bastion_ports }}"
+  when: configure_firewall and inventory_hostname in groups['bastion'] and firewall_bastion_ports | length > 0
+  notify: reload firewalld
+
+- name: Configure firewall - Allow private instance services
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_private_services }}"
+  when: configure_firewall and inventory_hostname in groups['private_instances']
+  notify: reload firewalld
+
+- name: Configure firewall - Allow private instance ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+    zone: "{{ firewall_zone }}"
+  loop: "{{ firewall_private_ports }}"
+  when: configure_firewall and inventory_hostname in groups['private_instances'] and firewall_private_ports | length > 0
+  notify: reload firewalld
+
+- name: Verify firewall status
+  command: firewall-cmd --state
+  register: firewall_status
+  when: configure_firewall
+  changed_when: false
+
+- name: List active firewall rules
+  command: firewall-cmd --list-all
+  register: firewall_rules
+  when: configure_firewall
+  changed_when: false
+
+- name: Display firewall configuration
+  debug:
+    msg: 
+      - "Firewall status: {{ firewall_status.stdout }}"
+      - "Active firewall rules:"
+      - "{{ firewall_rules.stdout_lines }}"
+  when: configure_firewall and firewall_status is defined and firewall_rules is defined
