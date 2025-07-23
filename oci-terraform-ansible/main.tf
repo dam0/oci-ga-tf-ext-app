@@ -68,28 +68,46 @@ module "load_balancer" {
   compartment_id = var.compartment_id
   name_prefix    = var.name_prefix
   
-  # Network references
-  public_subnet_id = module.network.public_subnet_id
+  # Network configuration
+  subnet_ids = [module.network.public_subnet_id]
+  is_private = var.lb_is_private
   
-  # Backend instances
-  private_instance_ids = module.private_compute.instance_ids
+  # Backend server configuration
+  backend_servers = [
+    for i in range(var.private_instance_count) : {
+      ip_address = module.private_compute.private_ips[i]
+      backup     = false
+      drain      = false
+      offline    = false
+      weight     = 1
+    }
+  ]
   
-  # SSL Certificate
+  # Certificate configuration (using the provided OCID)
   certificate_ocid = var.certificate_ocid
   
   # Load balancer configuration
-  lb_shape                   = var.lb_shape
-  lb_min_shape_bandwidth_mbps = var.lb_min_bandwidth_mbps
-  lb_max_shape_bandwidth_mbps = var.lb_max_bandwidth_mbps
+  lb_shape                     = var.lb_shape
+  lb_min_shape_bandwidth_mbps  = var.lb_min_bandwidth_mbps
+  lb_max_shape_bandwidth_mbps  = var.lb_max_bandwidth_mbps
   
-  # Backend configuration
-  backend_port         = var.backend_port
-  health_check_port    = var.health_check_port
-  health_check_url_path = var.health_check_url_path
+  # Tomcat configuration
+  tomcat_port              = var.tomcat_port
+  health_check_url_path    = var.health_check_url_path
+  
+  # WAF configuration
+  enable_waf                           = var.enable_waf
+  waf_rate_limit_requests_per_minute   = var.waf_rate_limit_requests_per_minute
+  waf_allowed_paths                    = var.waf_allowed_paths
+  
+  # Tagging
+  freeform_tags = var.freeform_tags
+  defined_tags  = var.defined_tags
   
   # Explicit dependency on compute module
   depends_on = [module.private_compute]
 }
+
 
 # Ansible Provisioning - Run Ansible after infrastructure is created
 resource "null_resource" "ansible_provisioning" {

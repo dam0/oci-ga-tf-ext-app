@@ -202,14 +202,14 @@ variable "lb_max_bandwidth_mbps" {
   default     = 100
 }
 
-variable "backend_port" {
-  description = "The port used to communicate with the backend instances"
-  type        = number
-  default     = 8080
+variable "lb_is_private" {
+  description = "Whether the load balancer is private (no public IP)"
+  type        = bool
+  default     = false
 }
 
-variable "health_check_port" {
-  description = "The port used for health checks"
+variable "tomcat_port" {
+  description = "The port used to communicate with the Tomcat backend instances"
   type        = number
   default     = 8080
 }
@@ -218,6 +218,25 @@ variable "health_check_url_path" {
   description = "The URL path used for health checks"
   type        = string
   default     = "/"
+}
+
+# WAF Configuration
+variable "enable_waf" {
+  description = "Whether to enable Web Application Firewall"
+  type        = bool
+  default     = true
+}
+
+variable "waf_rate_limit_requests_per_minute" {
+  description = "Number of requests allowed per minute for rate limiting"
+  type        = number
+  default     = 100
+}
+
+variable "waf_allowed_paths" {
+  description = "List of paths to allow through the WAF"
+  type        = list(string)
+  default     = ["/ords/r/marinedataregister", "/"]
 }
 
 # Tags

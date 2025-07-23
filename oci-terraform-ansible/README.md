@@ -10,6 +10,7 @@ The project uses a modular architecture with the following components:
 - **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists
 - **Compute Module**: Creates instances with detachable private IPs
 - **Load Balancer Module**: Creates a load balancer with HTTP to HTTPS redirect
+- **WAF Module**: Creates a Web Application Firewall that blocks traffic by default and allows specific paths
 - **Ansible Module**: Provisions instances using Ansible
 
 This modular approach provides several benefits:
@@ -32,6 +33,7 @@ This modular approach provides several benefits:
 - Reusable Private IPs for each instance
 - Load Balancer with HTTP to HTTPS redirect
 - SSL Certificate for HTTPS connections
+- Web Application Firewall (WAF) that blocks traffic by default and allows only specific paths
 
 ### Software (Ansible)
 - Java 11 (on all instances)
@@ -185,6 +187,24 @@ module "load_balancer" {
 }
 ```
 
+### WAF Module
+
+```hcl
+module "waf" {
+  source = "./modules/waf"
+  
+  compartment_id = var.compartment_id
+  name_prefix    = "test-ext"
+  
+  # Load balancer reference
+  load_balancer_id = module.load_balancer.load_balancer_id
+  
+  # WAF configuration - block all traffic by default, allow only specific paths
+  allowed_paths = ["/ords/r/marinedataregister"]
+  waf_display_name = "tomcat-waf-policy"
+}
+```
+
 ### Ansible Module
 
 ```hcl
@@ -219,6 +239,7 @@ This configuration creates a secure network architecture with:
 5. A load balancer in the public subnet that routes traffic to the private instances
 6. HTTP to HTTPS redirect for secure connections
 7. SSL certificate for HTTPS encryption
+8. Web Application Firewall (WAF) that blocks all traffic by default and only allows requests to specific paths (/ords/r/marinedataregister)
 
 ## Accessing the Environment
 
@@ -237,12 +258,14 @@ This configuration creates a secure network architecture with:
 ### Application Access via Load Balancer
 
 - The Tomcat application can be accessed through the load balancer:
-  - HTTP (will redirect to HTTPS): `http://<load_balancer_ip>`
-  - HTTPS (secure): `https://<load_balancer_ip>`
+  - HTTP (will redirect to HTTPS): `http://<load_balancer_ip>/ords/r/marinedataregister`
+  - HTTPS (secure): `https://<load_balancer_ip>/ords/r/marinedataregister`
 
 - The load balancer routes traffic to the Tomcat instances running on port 8080 in the private subnet
 - All HTTP traffic is automatically redirected to HTTPS for secure connections
 - The load balancer uses a valid SSL certificate for HTTPS encryption
+- The Web Application Firewall (WAF) blocks all traffic by default and only allows requests to `/ords/r/marinedataregister`
+- Any requests to other paths will receive a 403 Forbidden response
 
 ## Reserved Private IPs
 

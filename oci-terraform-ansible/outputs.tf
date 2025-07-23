@@ -96,6 +96,22 @@ output "load_balancer_backend_set" {
   value       = module.load_balancer.backend_set_name
 }
 
+# WAF Outputs
+output "waf_policy_id" {
+  description = "The OCID of the WAF policy"
+  value       = module.waf.waf_policy_id
+}
+
+output "waf_id" {
+  description = "The OCID of the WAF"
+  value       = module.waf.waf_id
+}
+
+output "waf_allowed_paths" {
+  description = "The paths allowed through the WAF"
+  value       = module.waf.allowed_paths
+}
+
 # Ansible Inventory Information
 output "ansible_inventory_info" {
   description = "Information for Ansible inventory"
