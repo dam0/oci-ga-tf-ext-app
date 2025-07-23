@@ -155,3 +155,24 @@ output "ansible_inventory_info" {
     }
   }
 }
+
+# IAM Policy Outputs
+output "load_balancer_service_policy_id" {
+  description = "The OCID of the load balancer service policy"
+  value       = module.iam.load_balancer_service_policy_id
+}
+
+output "load_balancer_dynamic_group_id" {
+  description = "The OCID of the load balancer dynamic group"
+  value       = module.iam.load_balancer_dynamic_group_id
+}
+
+output "waf_service_policy_id" {
+  description = "The OCID of the WAF service policy"
+  value       = module.iam.waf_service_policy_id
+}
+
+output "health_check_service_policy_id" {
+  description = "The OCID of the health check service policy"
+  value       = module.iam.health_check_service_policy_id
+}
