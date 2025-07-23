@@ -166,22 +166,6 @@ resource "oci_waf_web_app_firewall_policy" "tomcat_waf_policy" {
     }
   }
   
-  # Request Rate Limiting
-  request_rate_limiting {
-    rules {
-      name                = "rate-limit-marine-data"
-      type                = "REQUEST_RATE_LIMITING"
-      action_name         = "BLOCK_DEFAULT"
-      condition_language  = "JMESPATH"
-      condition           = "i_starts_with(http.request.url.path, '/ords/r/marinedataregister')"
-      configurations {
-        period_in_seconds         = 60
-        requests_limit           = var.waf_rate_limit_requests_per_minute
-        action_duration_in_seconds = 300
-      }
-    }
-  }
-  
   freeform_tags = var.freeform_tags
   defined_tags  = var.defined_tags
 }
