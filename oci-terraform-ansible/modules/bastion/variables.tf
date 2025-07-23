@@ -84,3 +84,9 @@ variable "defined_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "nsg_ids" {
+  description = "List of Network Security Group OCIDs to attach to the instance"
+  type        = list(string)
+  default     = []
+}

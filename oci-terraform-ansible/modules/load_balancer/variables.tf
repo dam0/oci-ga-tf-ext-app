@@ -205,3 +205,9 @@ variable "allowed_ipv4_cidr" {
   type        = list(string)
   default     = ["10.0.0.0/8"]
 }
+
+variable "nsg_ids" {
+  description = "List of Network Security Group OCIDs to attach to the load balancer"
+  type        = list(string)
+  default     = []
+}

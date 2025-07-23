@@ -71,3 +71,16 @@ variable "allowed_ssh_cidr" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+# Tagging Variables
+variable "freeform_tags" {
+  description = "Free-form tags for the network resources"
+  type        = map(string)
+  default     = {}
+}
+
+variable "defined_tags" {
+  description = "Defined tags for the network resources"
+  type        = map(string)
+  default     = {}
+}

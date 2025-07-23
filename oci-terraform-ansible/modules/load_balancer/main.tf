@@ -2,11 +2,12 @@
 
 # Create a load balancer
 resource "oci_load_balancer_load_balancer" "lb" {
-  compartment_id = var.compartment_id
-  display_name   = "${var.name_prefix}-tomcat-lb"
-  shape          = var.lb_shape
-  subnet_ids     = var.subnet_ids
-  is_private     = var.is_private
+  compartment_id             = var.compartment_id
+  display_name               = "${var.name_prefix}-tomcat-lb"
+  shape                      = var.lb_shape
+  subnet_ids                 = var.subnet_ids
+  is_private                 = var.is_private
+  network_security_group_ids = var.nsg_ids
 
   dynamic "shape_details" {
     for_each = var.lb_shape == "flexible" ? [1] : []

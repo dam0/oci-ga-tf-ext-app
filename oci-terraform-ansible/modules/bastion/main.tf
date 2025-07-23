@@ -16,10 +16,12 @@ resource "oci_core_instance" "bastion" {
   }
 
   create_vnic_details {
-    subnet_id        = var.public_subnet_id
-    display_name     = "${var.name_prefix}-bastion-vnic"
-    assign_public_ip = true
-    hostname_label   = var.hostname_label
+    subnet_id                = var.public_subnet_id
+    display_name             = "${var.name_prefix}-bastion-vnic"
+    assign_public_ip         = true
+    hostname_label           = var.hostname_label
+    nsg_ids                  = var.nsg_ids
+    skip_source_dest_check   = false
   }
 
   source_details {

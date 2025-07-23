@@ -18,6 +18,10 @@ module "network" {
   allowed_ipv4_cidr    = var.allowed_ipv4_cidr
   allowed_ipv6_cidr    = var.allowed_ipv6_cidr
   allowed_ssh_cidr     = var.allowed_ssh_cidr
+  
+  # Tagging
+  freeform_tags        = var.freeform_tags
+  defined_tags         = var.defined_tags
 }
 
 # Bastion Module - Creates bastion host with reserved private IP
@@ -36,6 +40,7 @@ module "bastion" {
   create_reserved_ip    = var.create_bastion_reserved_ip
   reserved_ip_address   = var.bastion_reserved_ip_address
   user_data             = var.bastion_user_data
+  nsg_ids               = [module.network.bastion_nsg_id]
   freeform_tags         = var.freeform_tags
   defined_tags          = var.defined_tags
 
@@ -60,6 +65,7 @@ module "private_compute" {
   create_reserved_ips   = var.create_private_reserved_ips
   reserved_ip_addresses = var.private_reserved_ip_addresses
   user_data             = var.private_instance_user_data
+  nsg_ids               = [module.network.private_compute_nsg_id]
   freeform_tags         = var.freeform_tags
   defined_tags          = var.defined_tags
 
@@ -108,6 +114,9 @@ module "load_balancer" {
   # IP Filtering for WAF
   allowed_ipv4_cidr                    = var.allowed_ipv4_cidr
   allowed_ipv6_cidr                    = var.allowed_ipv6_cidr
+  
+  # Network Security Groups
+  nsg_ids                              = [module.network.load_balancer_nsg_id]
   
   # Tagging
   freeform_tags = var.freeform_tags

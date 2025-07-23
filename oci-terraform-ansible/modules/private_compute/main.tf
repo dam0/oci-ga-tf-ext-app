@@ -17,10 +17,12 @@ resource "oci_core_instance" "private_instance" {
   }
 
   create_vnic_details {
-    subnet_id        = var.private_subnet_id
-    display_name     = "${var.name_prefix}-private-instance-${count.index + 1}-vnic"
-    assign_public_ip = false
-    hostname_label   = "${var.hostname_label_prefix}${count.index + 1}"
+    subnet_id                = var.private_subnet_id
+    display_name             = "${var.name_prefix}-private-instance-${count.index + 1}-vnic"
+    assign_public_ip         = false
+    hostname_label           = "${var.hostname_label_prefix}${count.index + 1}"
+    nsg_ids                  = var.nsg_ids
+    skip_source_dest_check   = false
   }
 
   source_details {

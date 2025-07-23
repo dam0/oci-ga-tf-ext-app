@@ -59,3 +59,19 @@ output "private_security_list_id" {
   description = "The OCID of the private security list"
   value       = oci_core_security_list.private_security_list.id
 }
+
+# Network Security Group Outputs
+output "bastion_nsg_id" {
+  description = "The OCID of the bastion NSG"
+  value       = oci_core_network_security_group.bastion_nsg.id
+}
+
+output "private_compute_nsg_id" {
+  description = "The OCID of the private compute NSG"
+  value       = oci_core_network_security_group.private_compute_nsg.id
+}
+
+output "load_balancer_nsg_id" {
+  description = "The OCID of the load balancer NSG"
+  value       = oci_core_network_security_group.load_balancer_nsg.id
+}

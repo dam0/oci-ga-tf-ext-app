@@ -117,6 +117,22 @@ output "waf_allowed_paths" {
   value       = module.load_balancer.waf_allowed_paths
 }
 
+# Network Security Group Outputs
+output "bastion_nsg_id" {
+  description = "The OCID of the bastion NSG"
+  value       = module.network.bastion_nsg_id
+}
+
+output "private_compute_nsg_id" {
+  description = "The OCID of the private compute NSG"
+  value       = module.network.private_compute_nsg_id
+}
+
+output "load_balancer_nsg_id" {
+  description = "The OCID of the load balancer NSG"
+  value       = module.network.load_balancer_nsg_id
+}
+
 # Ansible Inventory Information
 output "ansible_inventory_info" {
   description = "Information for Ansible inventory"

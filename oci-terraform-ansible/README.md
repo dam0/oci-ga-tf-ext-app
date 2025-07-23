@@ -7,18 +7,33 @@ This Terraform configuration provisions an Oracle Cloud Infrastructure (OCI) env
 The project uses a modular architecture with the following components:
 
 ### Modules
-- **Network Module**: Creates VCN, subnets, gateways, route tables, and security lists with IP filtering
-- **Bastion Module**: Creates bastion host with detachable private IP
-- **Private Compute Module**: Creates private instances with detachable private IPs for Tomcat servers
-- **Load Balancer Module**: Creates a load balancer with HTTP to HTTPS redirect, SSL termination, and integrated WAF
-- **Integrated WAF**: Web Application Firewall that blocks traffic by default and allows only `/ords/r/marinedataregister` path with IP filtering
+- **Network Module** (`modules/network/`): Creates VCN, subnets, gateways, route tables, and security lists with IP filtering
+- **Bastion Module** (`modules/bastion/`): Creates bastion host with detachable private IP
+- **Private Compute Module** (`modules/private_compute/`): Creates private instances with detachable private IPs for Tomcat servers
+- **Load Balancer Module** (`modules/load_balancer/`): Creates a load balancer with HTTP to HTTPS redirect, SSL termination, and integrated WAF
 - **Ansible Integration**: Provisions instances using Ansible playbooks
+
+### Integrated Security Features
+- **Web Application Firewall**: Integrated into the load balancer module, blocks traffic by default and allows only `/ords/r/marinedataregister` path with IP filtering
+- **Network Security Groups**: Granular instance-level security control with dedicated NSGs for bastion, private compute, and load balancer
+- **Network Security**: IP-based access control at both network security group and WAF levels
+
+### Module Structure
+```
+modules/
+├── network/           # VCN, subnets, gateways, security groups with IP filtering
+├── bastion/          # Jump server with detachable private IP
+├── private_compute/  # Private instances for Tomcat servers with detachable IPs
+├── load_balancer/    # Load balancer with SSL termination and integrated WAF
+└── ansible/          # Ansible provisioning integration
+```
 
 This modular approach provides several benefits:
 - **Reusability**: Modules can be reused across different projects
 - **Maintainability**: Each module has a single responsibility
 - **Scalability**: Easy to add or modify components without affecting the entire infrastructure
 - **Testability**: Modules can be tested independently
+- **Security**: Integrated WAF and IP filtering at multiple layers
 
 ## Resources Created
 
@@ -28,6 +43,7 @@ This modular approach provides several benefits:
 - NAT Gateway
 - Public and Private Route Tables
 - Public and Private Security Lists
+- Network Security Groups (NSGs) for granular instance-level security
 - Public and Private Subnets
 - Public Bastion Host (in public subnet)
 - Private Instance(s) (in private subnet)
@@ -387,7 +403,11 @@ This configuration includes several security features to protect your infrastruc
 
 1. **Private Subnet**: Application instances are deployed in a private subnet with no direct internet access.
 2. **Bastion Host**: All access to private instances is through a bastion host in the public subnet.
-3. **IP Filtering**: Access to the load balancer and bastion host is restricted to specific CIDR blocks:
+3. **Network Security Groups (NSGs)**: Granular instance-level security control:
+   - **Bastion NSG**: Allows SSH access from allowed CIDR blocks
+   - **Private Compute NSG**: Allows SSH from bastion NSG and application traffic from load balancer subnet
+   - **Load Balancer NSG**: Allows HTTP/HTTPS from allowed CIDR blocks and egress to private instances
+4. **IP Filtering**: Access to the load balancer and bastion host is restricted to specific CIDR blocks:
    - Application access (HTTP/HTTPS): Restricted to internal network (10.0.0.0/8) and specific IPv6 range (2400:a844:4088::/48)
    - SSH access: Configurable (default: 0.0.0.0/0, can be restricted to internal network)
 
