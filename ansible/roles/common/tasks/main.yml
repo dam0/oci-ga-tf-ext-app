@@ -1,0 +1,62 @@
+---
+- name: Update all packages
+  dnf:
+    name: "*"
+    state: latest
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install common packages
+  dnf:
+    name:
+      - wget
+      - unzip
+      - curl
+      - vim
+      - net-tools
+      - firewalld
+      - python3
+      - python3-pip
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Start and enable firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: Configure firewall - Allow services
+  firewalld:
+    service: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ firewall_allowed_services }}"
+  when: configure_firewall
+  notify: reload firewalld
+
+- name: Configure firewall - Allow ports
+  firewalld:
+    port: "{{ item }}"
+    permanent: yes
+    state: enabled
+    immediate: yes
+  loop: "{{ firewall_allowed_ports }}"
+  when: configure_firewall
+  notify: reload firewalld
+
+- name: Verify firewall status
+  command: firewall-cmd --state
+  register: firewall_status
+  when: configure_firewall
+  changed_when: false
+
+- name: Display firewall status
+  debug:
+    msg: "Firewall status: {{ firewall_status.stdout }}"
+  when: configure_firewall and firewall_status is defined
+
+- name: Set timezone
+  timezone:
+    name: UTC

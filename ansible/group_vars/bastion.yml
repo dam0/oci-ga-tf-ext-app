@@ -1,0 +1,9 @@
+---
+# Bastion host specific firewall configuration
+firewall_bastion_services:
+  - ssh
+
+firewall_bastion_ports: []
+
+# Bastion hosts typically don't need application ports open
+# They serve as jump hosts for SSH access to private instances

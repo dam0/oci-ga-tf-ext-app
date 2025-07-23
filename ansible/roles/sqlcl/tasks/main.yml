@@ -1,0 +1,43 @@
+---
+- name: Create SQLCL installation directory
+  file:
+    path: "{{ sqlcl_install_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Download SQLCL
+  get_url:
+    url: "{{ sqlcl_url }}"
+    dest: "/tmp/sqlcl-{{ sqlcl_version }}.zip"
+    mode: '0644'
+    timeout: 300
+  register: download_sqlcl
+  retries: 3
+  delay: 5
+  until: download_sqlcl is succeeded
+
+- name: Extract SQLCL
+  unarchive:
+    src: "/tmp/sqlcl-{{ sqlcl_version }}.zip"
+    dest: "{{ sqlcl_install_dir }}"
+    remote_src: yes
+    creates: "{{ sqlcl_install_dir }}/sqlcl/bin/sql"
+
+- name: Create symlink to SQLCL binary
+  file:
+    src: "{{ sqlcl_install_dir }}/sqlcl/bin/sql"
+    dest: /usr/local/bin/sql
+    state: link
+
+- name: Set SQLCL environment variables
+  lineinfile:
+    path: /etc/profile.d/sqlcl.sh
+    create: yes
+    line: 'export PATH=$PATH:{{ sqlcl_install_dir }}/sqlcl/bin'
+    mode: '0644'
+
+- name: Source SQLCL environment variables
+  shell: source /etc/profile.d/sqlcl.sh
+  args:
+    executable: /bin/bash
+  changed_when: false

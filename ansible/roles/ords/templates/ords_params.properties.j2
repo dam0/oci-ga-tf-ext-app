@@ -1,0 +1,16 @@
+db.hostname={{ db_host }}
+db.port={{ db_port }}
+db.servicename={{ db_service }}
+db.username=ORDS_PUBLIC_USER
+db.password={{ db_ords_password }}
+migrate.apex.rest=false
+rest.services.apex.add=true
+rest.services.ords.add=true
+schema.tablespace.default=SYSAUX
+schema.tablespace.temp=TEMP
+standalone.http.port={{ ords_port }}
+standalone.use.https=false
+standalone.static.images=/opt/ords/images
+user.public.password={{ db_ords_password }}
+sys.user=SYS
+sys.password={{ db_sys_password }}
