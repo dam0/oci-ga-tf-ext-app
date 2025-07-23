@@ -1,404 +1,86 @@
-# Create a VCN
-resource "oci_core_vcn" "vcn" {
-  cidr_block     = var.vcn_cidr
+# Main Terraform configuration file
+
+# Network Module - Creates VCN, subnets, gateways, and security lists
+module "network" {
+  source = "./modules/network"
+
   compartment_id = var.compartment_id
-  display_name   = "test-ext-vcn"
-  dns_label      = "testextvcn"
+  vcn_cidr       = var.vcn_cidr
+  
+  public_subnet_cidr  = var.public_subnet_cidr
+  private_subnet_cidr = var.private_subnet_cidr
+  
+  # Use name_prefix for consistent naming
+  name_prefix = "test-ext"
+  dns_label   = "testextvcn"
+  
+  # Optional security settings
+  allow_http  = true
+  allow_https = true
+  app_ports   = [8080, 8443, 9090] # Tomcat and ORDS ports
 }
 
-# Create an Internet Gateway
-resource "oci_core_internet_gateway" "internet_gateway" {
-  compartment_id = var.compartment_id
-  display_name   = "test-ext-internet-gateway"
-  vcn_id         = oci_core_vcn.vcn.id
-}
-
-# Create a NAT Gateway for the private subnet
-resource "oci_core_nat_gateway" "nat_gateway" {
-  compartment_id = var.compartment_id
-  display_name   = "test-ext-nat-gateway"
-  vcn_id         = oci_core_vcn.vcn.id
-}
-
-# Create a Route Table for the public subnet
-resource "oci_core_route_table" "public_route_table" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "test-ext-public-route-table"
-
-  route_rules {
-    destination       = "0.0.0.0/0"
-    destination_type  = "CIDR_BLOCK"
-    network_entity_id = oci_core_internet_gateway.internet_gateway.id
-  }
-}
-
-# Create a Route Table for the private subnet
-resource "oci_core_route_table" "private_route_table" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "test-ext-private-route-table"
-
-  route_rules {
-    destination       = "0.0.0.0/0"
-    destination_type  = "CIDR_BLOCK"
-    network_entity_id = oci_core_nat_gateway.nat_gateway.id
-  }
-}
-
-# Create a Security List for the public subnet
-resource "oci_core_security_list" "public_security_list" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "test-ext-public-security-list"
-
-  # Allow SSH traffic from anywhere
-  ingress_security_rules {
-    protocol  = "6" # TCP
-    source    = "0.0.0.0/0"
-    stateless = false
-
-    tcp_options {
-      min = 22
-      max = 22
-    }
-  }
-
-  # Allow all outbound traffic
-  egress_security_rules {
-    protocol    = "all"
-    destination = "0.0.0.0/0"
-    stateless   = false
-  }
-}
-
-# Create a Security List for the private subnet
-resource "oci_core_security_list" "private_security_list" {
-  compartment_id = var.compartment_id
-  vcn_id         = oci_core_vcn.vcn.id
-  display_name   = "test-ext-private-security-list"
-
-  # Allow SSH traffic from the public subnet only
-  ingress_security_rules {
-    protocol  = "6" # TCP
-    source    = var.public_subnet_cidr
-    stateless = false
-
-    tcp_options {
-      min = 22
-      max = 22
-    }
-  }
-
-  # Allow all outbound traffic
-  egress_security_rules {
-    protocol    = "all"
-    destination = "0.0.0.0/0"
-    stateless   = false
-  }
-}
-
-# Create a public subnet for the bastion
-resource "oci_core_subnet" "public_subnet" {
-  cidr_block        = var.public_subnet_cidr
-  compartment_id    = var.compartment_id
-  vcn_id            = oci_core_vcn.vcn.id
-  display_name      = "test-ext-public-subnet"
-  route_table_id    = oci_core_route_table.public_route_table.id
-  security_list_ids = [oci_core_security_list.public_security_list.id]
-  dns_label         = "public"
-}
-
-# Create a private subnet for the private instance
-resource "oci_core_subnet" "private_subnet" {
-  cidr_block                 = var.private_subnet_cidr
-  compartment_id             = var.compartment_id
-  vcn_id                     = oci_core_vcn.vcn.id
-  display_name               = "test-ext-private-subnet"
-  route_table_id             = oci_core_route_table.private_route_table.id
-  security_list_ids          = [oci_core_security_list.private_security_list.id]
-  dns_label                  = "private"
-  prohibit_public_ip_on_vnic = true
-}
-
-# Create a bastion host in the public subnet
-resource "oci_core_instance" "bastion" {
-  availability_domain = var.availability_domain
+# Compute Module - Creates instances with detachable private IPs
+module "compute" {
+  source = "./modules/compute"
+  
   compartment_id      = var.compartment_id
-  display_name        = "test-ext-bastion"
-  shape               = var.instance_shape
-
-  shape_config {
-    memory_in_gbs = 16
-    ocpus         = 1
-  }
-
-  create_vnic_details {
-    subnet_id        = oci_core_subnet.public_subnet.id
-    display_name     = "test-ext-bastion-vnic"
-    assign_public_ip = true
-    hostname_label   = "ext-bastion"
-  }
-
-  source_details {
-    source_type = "image"
-    source_id   = var.instance_image_ocid
-  }
-
-  metadata = {
-    ssh_authorized_keys = var.ssh_public_key
-  }
-}
-
-# Create a reserved private IP for the bastion that can be detached and reused
-resource "oci_core_private_ip" "bastion_private_ip" {
-  display_name   = "test-ext-bastion-private-ip"
-  ip_address     = cidrhost(var.public_subnet_cidr, 10) # Assign a specific IP in the public subnet
-  vnic_id        = oci_core_vnic_attachment.bastion_vnic_attachment.vnic_id
-  hostname_label = "bastion-private-ip"
-  
-  # This ensures the private IP is detached before the VNIC is destroyed
-  lifecycle {
-    create_before_destroy = true
-  }
-  
-  # Add explicit dependency to control destroy order
-  depends_on = [oci_core_vnic_attachment.bastion_vnic_attachment]
-}
-
-# Create a VNIC attachment for the bastion's reserved private IP
-resource "oci_core_vnic_attachment" "bastion_vnic_attachment" {
-  instance_id  = oci_core_instance.bastion.id
-  display_name = "test-ext-bastion-secondary-vnic"
-
-  create_vnic_details {
-    subnet_id              = oci_core_subnet.public_subnet.id
-    display_name           = "test-ext-bastion-secondary-vnic"
-    assign_public_ip       = false
-    skip_source_dest_check = false
-  }
-  
-  # This ensures proper destroy order
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# This resource ensures the bastion's private IP is detached before the VNIC is destroyed
-resource "null_resource" "detach_bastion_private_ip" {
-  # Only run this on destroy
-  triggers = {
-    private_ip_id = oci_core_private_ip.bastion_private_ip.id
-  }
-
-  # This provisioner will run before the resource is destroyed
-  provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      echo "Detaching bastion private IP ${self.triggers.private_ip_id} before VNIC destruction"
-      # Uncomment the line below when running in an environment with OCI CLI configured
-      # oci network private-ip update --private-ip-id ${self.triggers.private_ip_id} --vnic-id null || true
-    EOT
-  }
-
-  depends_on = [oci_core_private_ip.bastion_private_ip]
-}
-
-# Create a private instance in the private subnet
-resource "oci_core_instance" "private_instance" {
   availability_domain = var.availability_domain
-  compartment_id      = var.compartment_id
-  display_name        = "test-ext-private-instance"
-  shape               = var.instance_shape
-
-  shape_config {
-    memory_in_gbs = 16
-    ocpus         = 2
-  }
-
-  create_vnic_details {
-    subnet_id        = oci_core_subnet.private_subnet.id
-    display_name     = "test-ext-private-instance-vnic"
-    assign_public_ip = false
-    hostname_label   = "ext-private"
-  }
-
-  source_details {
-    source_type = "image"
-    source_id   = var.instance_image_ocid
-  }
-
-  metadata = {
-    ssh_authorized_keys = var.ssh_public_key
-  }
-}
-
-# Create a reserved private IP for the private instance that can be detached and reused
-resource "oci_core_private_ip" "private_instance_private_ip" {
-  display_name   = "test-ext-private-instance-private-ip"
-  ip_address     = cidrhost(var.private_subnet_cidr, 10) # Assign a specific IP in the private subnet
-  vnic_id        = oci_core_vnic_attachment.private_instance_vnic_attachment.vnic_id
-  hostname_label = "private-instance-private-ip"
+  name_prefix         = "test-ext"
   
-  # This ensures the private IP is detached before the VNIC is destroyed
-  lifecycle {
-    create_before_destroy = true
-  }
+  # Instance configuration
+  instance_shape     = var.instance_shape
+  instance_image_ocid = var.instance_image_ocid
+  ssh_public_key     = var.ssh_public_key
   
-  # Add explicit dependency to control destroy order
-  depends_on = [oci_core_vnic_attachment.private_instance_vnic_attachment]
-}
-
-# Create a VNIC attachment for the private instance's reserved private IP
-resource "oci_core_vnic_attachment" "private_instance_vnic_attachment" {
-  instance_id  = oci_core_instance.private_instance.id
-  display_name = "test-ext-private-instance-secondary-vnic"
-
-  create_vnic_details {
-    subnet_id              = oci_core_subnet.private_subnet.id
-    display_name           = "test-ext-private-instance-secondary-vnic"
-    assign_public_ip       = false
-    skip_source_dest_check = false
-  }
+  # Network references
+  public_subnet_id   = module.network.public_subnet_id
+  private_subnet_id  = module.network.private_subnet_id
+  public_subnet_cidr = module.network.public_subnet_cidr
+  private_subnet_cidr = module.network.private_subnet_cidr
   
-  # This ensures proper destroy order
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# This resource ensures the private instance's private IP is detached before the VNIC is destroyed
-resource "null_resource" "detach_private_instance_private_ip" {
-  # Only run this on destroy
-  triggers = {
-    private_ip_id = oci_core_private_ip.private_instance_private_ip.id
-  }
-
-  # This provisioner will run before the resource is destroyed
-  provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      echo "Detaching private instance private IP ${self.triggers.private_ip_id} before VNIC destruction"
-      # Uncomment the line below when running in an environment with OCI CLI configured
-      # oci network private-ip update --private-ip-id ${self.triggers.private_ip_id} --vnic-id null || true
-    EOT
-  }
-
-  depends_on = [oci_core_private_ip.private_instance_private_ip]
-}
-
-# Create a second private instance if requested
-resource "oci_core_instance" "private_instance_secondary" {
-  count               = var.create_second_instance ? 1 : 0
-  availability_domain = var.availability_domain
-  compartment_id      = var.compartment_id
-  display_name        = "test-ext-private-instance-secondary"
-  shape               = var.instance_shape
-
-  create_vnic_details {
-    subnet_id        = oci_core_subnet.private_subnet.id
-    display_name     = "test-ext-private-instance-secondary-vnic"
-    assign_public_ip = false
-    hostname_label   = "private2"
-  }
-
-  source_details {
-    source_type = "image"
-    source_id   = var.instance_image_ocid
-  }
-
-  metadata = {
-    ssh_authorized_keys = var.ssh_public_key
-  }
-}
-
-# Create a reserved private IP for the second private instance that can be detached and reused
-resource "oci_core_private_ip" "private_instance_secondary_private_ip" {
-  count          = var.create_second_instance ? 1 : 0
-  display_name   = "test-ext-private-instance-secondary-private-ip"
-  ip_address     = cidrhost(var.private_subnet_cidr, 11) # Assign a different specific IP in the private subnet
-  vnic_id        = oci_core_vnic_attachment.private_instance_secondary_vnic_attachment[0].vnic_id
-  hostname_label = "private-instance-secondary-private-ip"
+  # Instance sizing
+  bastion_memory_in_gbs = 16
+  bastion_ocpus = 1
+  private_instance_memory_in_gbs = 16
+  private_instance_ocpus = 2
   
-  # This ensures the private IP is detached before the VNIC is destroyed
-  lifecycle {
-    create_before_destroy = true
-  }
+  # Private IP configuration
+  bastion_private_ip_host_num = 10
+  private_instance_ip_host_num = 10
+  secondary_instance_ip_host_num = 11
   
-  # Add explicit dependency to control destroy order
-  depends_on = [oci_core_vnic_attachment.private_instance_secondary_vnic_attachment]
+  # Optional second instance
+  create_second_instance = var.create_second_instance
+  
+  # Explicit dependency on network module
+  depends_on = [module.network]
 }
 
-# Create a VNIC attachment for the second private instance
-resource "oci_core_vnic_attachment" "private_instance_secondary_vnic_attachment" {
-  count        = var.create_second_instance ? 1 : 0
-  instance_id  = oci_core_instance.private_instance_secondary[0].id
-  display_name = "test-ext-private-instance-secondary-vnic-attachment"
-
-  create_vnic_details {
-    subnet_id              = oci_core_subnet.private_subnet.id
-    display_name           = "test-ext-private-instance-secondary-secondary-vnic"
-    assign_public_ip       = false
-    skip_source_dest_check = false
-  }
+# Ansible Module - Provisions instances using Ansible
+module "ansible" {
+  source = "./modules/ansible"
   
-  # This ensures proper destroy order
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# This resource ensures the second private instance's private IP is detached before the VNIC is destroyed
-resource "null_resource" "detach_private_instance_secondary_private_ip" {
-  count = var.create_second_instance ? 1 : 0
+  # Instance references
+  bastion_id = module.compute.bastion_id
+  private_instance_id = module.compute.private_instance_id
+  private_instance_secondary_id = module.compute.private_instance_secondary_id
+  create_second_instance = var.create_second_instance
   
-  # Only run this on destroy
-  triggers = {
-    private_ip_id = oci_core_private_ip.private_instance_secondary_private_ip[0].id
-  }
-
-  # This provisioner will run before the resource is destroyed
-  provisioner "local-exec" {
-    when    = destroy
-    command = <<-EOT
-      echo "Detaching second private instance private IP ${self.triggers.private_ip_id} before VNIC destruction"
-      # Uncomment the line below when running in an environment with OCI CLI configured
-      # oci network private-ip update --private-ip-id ${self.triggers.private_ip_id} --vnic-id null || true
-    EOT
-  }
-
-  depends_on = [oci_core_private_ip.private_instance_secondary_private_ip]
-}
-
-# Null resource to run Ansible provisioning after test-ext completes
-resource "null_resource" "ansible_provisioning" {
-  # Only run when instances are created or updated
-  triggers = {
-    bastion_id = oci_core_instance.bastion.id
-    private_instance_id = oci_core_instance.private_instance.id
-    second_private_instance_id = var.create_second_instance ? oci_core_instance.private_instance_secondary[0].id : "none"
-  }
-
-  # Generate Ansible inventory from test-ext outputs
-  provisioner "local-exec" {
-    command = <<-EOT
-      # Wait for instances to be fully initialized
-      sleep 120
-
-      # Export SSH key path (update this with your actual SSH key path)
-      export SSH_PRIVATE_KEY_PATH=${var.private_key_path}
-
-      # Generate Ansible inventory
-      ./generate_inventory.sh
-
-      # Run Ansible playbook only on private instances, using bastion as jump host
-      cd ansible && ansible-playbook -i inventory/hosts.ini provision.yml --limit private_instances --private-key ${var.private_key_path} -e "ansible_user=opc ansible_ssh_common_args='-o ProxyCommand=\"ssh -W %h:%p -i ${var.private_key_path} -o StrictHostKeyChecking=no bastion\"'"
-    EOT
-  }
-
-  depends_on = [
-    oci_core_instance.bastion,
-    oci_core_instance.private_instance,
-    oci_core_instance.private_instance_secondary
-  ]
+  # IP addresses for Ansible inventory
+  bastion_public_ip = module.compute.bastion_public_ip
+  private_instance_private_ip = module.compute.private_instance_private_ip
+  private_instance_secondary_private_ip = module.compute.private_instance_secondary_private_ip
+  
+  # Ansible configuration
+  private_key_path = var.private_key_path
+  wait_time_seconds = 120
+  inventory_script_path = "./generate_inventory.sh"
+  ansible_dir = "ansible"
+  inventory_file = "inventory/hosts.ini"
+  playbook_file = "provision.yml"
+  ansible_limit = "--limit private_instances"
+  
+  # Explicit dependency on compute module
+  depends_on = [module.compute]
 }
