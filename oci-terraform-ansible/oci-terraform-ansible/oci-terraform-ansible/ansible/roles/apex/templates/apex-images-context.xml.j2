@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  APEX Images Context Configuration
+  This context serves the APEX {{ apex_version }} static images
+  Accessible at: http://server:port/{{ apex_images_context_name }}/
+-->
+<Context 
+    docBase="{{ apex_images_dir }}" 
+    path="/{{ apex_images_context_name }}"
+    reloadable="false">
+    
+    <!-- Security settings for static content -->
+    <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+           allow=".*" />
+    
+    <!-- Cache settings for better performance -->
+    <Resources cachingAllowed="true" 
+               cacheMaxSize="100000" 
+               cacheTtl="86400000" />
+               
+    <!-- MIME type mappings for APEX resources -->
+    <Context>
+        <Parameter name="apex.images.version" value="{{ apex_version }}" />
+        <Parameter name="apex.images.path" value="{{ apex_images_dir }}" />
+    </Context>
+</Context>

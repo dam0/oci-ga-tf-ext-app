@@ -1,0 +1,13 @@
+---
+# Private instances firewall configuration
+firewall_private_services:
+  - ssh
+
+firewall_private_ports:
+  - 8080/tcp  # Tomcat HTTP (load balancer will forward to this port)
+  - 8888/tcp  # Oracle ORDS (custom application port)
+
+# Private instances run the application services
+# Port 8080: Tomcat web server
+# Port 8888: Oracle ORDS (Oracle REST Data Services)
+# SSH is needed for management and troubleshooting

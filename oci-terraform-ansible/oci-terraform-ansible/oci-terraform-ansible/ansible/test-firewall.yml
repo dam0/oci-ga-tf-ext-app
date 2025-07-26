@@ -1,0 +1,42 @@
+---
+- name: Test firewall configuration
+  hosts: all
+  become: yes
+  tasks:
+    - name: Check firewall status
+      command: firewall-cmd --state
+      register: firewall_status
+      changed_when: false
+
+    - name: List all firewall rules
+      command: firewall-cmd --list-all
+      register: firewall_rules
+      changed_when: false
+
+    - name: Display firewall configuration
+      debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "Firewall status: {{ firewall_status.stdout }}"
+          - "Active rules:"
+          - "{{ firewall_rules.stdout_lines }}"
+
+    - name: Test port connectivity (if netcat is available)
+      shell: |
+        for port in 22 8080 8888; do
+          if command -v nc >/dev/null 2>&1; then
+            echo "Testing port $port..."
+            timeout 2 nc -z localhost $port && echo "Port $port: OPEN" || echo "Port $port: CLOSED/FILTERED"
+          else
+            echo "netcat not available, skipping port test"
+            break
+          fi
+        done
+      register: port_test
+      changed_when: false
+      failed_when: false
+
+    - name: Display port test results
+      debug:
+        msg: "{{ port_test.stdout_lines }}"
+      when: port_test.stdout_lines is defined

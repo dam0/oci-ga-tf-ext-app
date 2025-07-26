@@ -1,0 +1,32 @@
+---
+# Default firewall configuration for all instances
+firewall_default_services:
+  - ssh
+
+firewall_default_ports: []
+
+# Bastion-specific firewall configuration
+firewall_bastion_services:
+  - ssh
+
+firewall_bastion_ports: []
+
+# Private compute instance firewall configuration
+firewall_private_services:
+  - ssh
+
+firewall_private_ports:
+  - 8080/tcp  # Tomcat HTTP
+  - 8888/tcp  # Custom application
+
+# Load balancer firewall configuration (if needed)
+firewall_lb_services:
+  - ssh
+  - http
+  - https
+
+firewall_lb_ports: []
+
+# Enable/disable firewall configuration
+configure_firewall: true
+firewall_zone: public

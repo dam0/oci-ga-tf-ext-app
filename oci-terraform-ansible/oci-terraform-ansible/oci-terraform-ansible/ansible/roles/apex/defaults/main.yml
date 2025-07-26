@@ -1,0 +1,15 @@
+---
+# APEX installation settings
+apex_version: "24.1"
+apex_zip_url: "https://download.oracle.com/otn_software/apex/apex_{{ apex_version }}_en.zip"
+apex_install_dir: "/opt/apex"
+apex_images_dir: "{{ tomcat_home }}/webapps/i"
+apex_temp_dir: "/tmp/apex"
+
+# Tomcat integration settings
+apex_context_path: "/i"
+apex_images_context_name: "i"
+
+# File permissions
+apex_user: "{{ tomcat_user }}"
+apex_group: "{{ tomcat_group }}"

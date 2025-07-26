@@ -1,0 +1,120 @@
+---
+- name: Create APEX installation directory
+  file:
+    path: "{{ apex_install_dir }}"
+    state: directory
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0755'
+
+- name: Create APEX temporary directory
+  file:
+    path: "{{ apex_temp_dir }}"
+    state: directory
+    mode: '0755'
+
+- name: Check if APEX is already downloaded
+  stat:
+    path: "{{ apex_temp_dir }}/apex_{{ apex_version }}_en.zip"
+  register: apex_zip_exists
+
+- name: Download APEX {{ apex_version }}
+  get_url:
+    url: "{{ apex_zip_url }}"
+    dest: "{{ apex_temp_dir }}/apex_{{ apex_version }}_en.zip"
+    mode: '0644'
+    timeout: 300
+  when: not apex_zip_exists.stat.exists
+
+- name: Check if APEX is already extracted
+  stat:
+    path: "{{ apex_temp_dir }}/apex"
+  register: apex_extracted
+
+- name: Extract APEX archive
+  unarchive:
+    src: "{{ apex_temp_dir }}/apex_{{ apex_version }}_en.zip"
+    dest: "{{ apex_temp_dir }}"
+    remote_src: yes
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    creates: "{{ apex_temp_dir }}/apex"
+  when: not apex_extracted.stat.exists
+
+- name: Check if APEX images are already installed
+  stat:
+    path: "{{ apex_images_dir }}"
+  register: apex_images_installed
+
+- name: Copy APEX images to Tomcat webapps directory
+  copy:
+    src: "{{ apex_temp_dir }}/apex/images/"
+    dest: "{{ apex_images_dir }}/"
+    remote_src: yes
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0644'
+    directory_mode: '0755'
+  when: not apex_images_installed.stat.exists
+  notify: restart tomcat
+
+- name: Set proper permissions on APEX images directory
+  file:
+    path: "{{ apex_images_dir }}"
+    state: directory
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Copy APEX installation files to installation directory
+  copy:
+    src: "{{ apex_temp_dir }}/apex/"
+    dest: "{{ apex_install_dir }}/"
+    remote_src: yes
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0644'
+    directory_mode: '0755'
+  when: not apex_extracted.stat.exists
+
+- name: Create APEX images context configuration
+  template:
+    src: apex-images-context.xml.j2
+    dest: "{{ tomcat_home }}/conf/Catalina/localhost/{{ apex_images_context_name }}.xml"
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0644'
+  notify: restart tomcat
+
+- name: Verify APEX images directory structure
+  find:
+    paths: "{{ apex_images_dir }}"
+    file_type: directory
+  register: apex_images_dirs
+
+- name: Display APEX images directory structure
+  debug:
+    msg: "APEX images installed at {{ apex_images_dir }} with {{ apex_images_dirs.matched }} subdirectories"
+
+- name: Clean up temporary APEX files (optional)
+  file:
+    path: "{{ apex_temp_dir }}"
+    state: absent
+  when: cleanup_temp_files | default(false)
+
+- name: Create APEX info file
+  template:
+    src: apex-info.txt.j2
+    dest: "{{ apex_install_dir }}/APEX_INSTALLATION_INFO.txt"
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0644'
+
+- name: Create APEX verification script
+  template:
+    src: verify-apex-images.sh.j2
+    dest: "{{ apex_install_dir }}/verify-apex-images.sh"
+    owner: "{{ apex_user }}"
+    group: "{{ apex_group }}"
+    mode: '0755'

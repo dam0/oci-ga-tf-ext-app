@@ -1,0 +1,26 @@
+APEX {{ apex_version }} Installation Information
+==========================================
+
+Installation Date: {{ ansible_date_time.iso8601 }}
+Installed by: Ansible
+Host: {{ inventory_hostname }}
+
+Directories:
+- APEX Installation: {{ apex_install_dir }}
+- APEX Images: {{ apex_images_dir }}
+- Tomcat Home: {{ tomcat_home }}
+
+URLs:
+- APEX Images: http://{{ inventory_hostname }}:{{ tomcat_port }}/{{ apex_images_context_name }}/
+- Example image: http://{{ inventory_hostname }}:{{ tomcat_port }}/{{ apex_images_context_name }}/apex_ui/img/apex_logo.png
+
+Configuration:
+- Context Path: /{{ apex_images_context_name }}
+- Context File: {{ tomcat_home }}/conf/Catalina/localhost/{{ apex_images_context_name }}.xml
+- Owner: {{ apex_user }}:{{ apex_group }}
+
+Notes:
+- APEX images are served as static content through Tomcat
+- Images are cached for better performance
+- Context is configured for security and performance
+- All files are owned by the Tomcat user for proper access control

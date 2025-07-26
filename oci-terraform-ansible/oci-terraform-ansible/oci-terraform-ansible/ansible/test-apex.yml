@@ -1,0 +1,86 @@
+---
+- name: Test APEX installation and configuration
+  hosts: private_instances
+  become: yes
+  tasks:
+    - name: Check APEX installation directory
+      stat:
+        path: "{{ apex_install_dir }}"
+      register: apex_install_check
+
+    - name: Check APEX images directory
+      stat:
+        path: "{{ apex_images_dir }}"
+      register: apex_images_check
+
+    - name: Check APEX context configuration
+      stat:
+        path: "{{ tomcat_home }}/conf/Catalina/localhost/i.xml"
+      register: apex_context_check
+
+    - name: List APEX images directory contents
+      find:
+        paths: "{{ apex_images_dir }}"
+        file_type: directory
+      register: apex_images_dirs
+      when: apex_images_check.stat.exists
+
+    - name: Check for key APEX image files
+      stat:
+        path: "{{ apex_images_dir }}/{{ item }}"
+      register: apex_key_files
+      loop:
+        - "apex_ui"
+        - "libraries"
+        - "themes"
+      when: apex_images_check.stat.exists
+
+    - name: Test APEX images URL accessibility (if curl is available)
+      uri:
+        url: "http://localhost:{{ tomcat_port }}/i/apex_ui/img/apex_logo.png"
+        method: GET
+        status_code: [200, 404]  # 404 is acceptable if specific file doesn't exist
+      register: apex_url_test
+      failed_when: false
+      when: apex_images_check.stat.exists
+
+    - name: Display APEX installation status
+      debug:
+        msg:
+          - "Host: {{ inventory_hostname }}"
+          - "APEX Installation Directory: {{ 'EXISTS' if apex_install_check.stat.exists else 'MISSING' }}"
+          - "APEX Images Directory: {{ 'EXISTS' if apex_images_check.stat.exists else 'MISSING' }}"
+          - "APEX Context Configuration: {{ 'EXISTS' if apex_context_check.stat.exists else 'MISSING' }}"
+          - "APEX Images Subdirectories: {{ apex_images_dirs.matched | default('N/A') }}"
+          - "APEX URL Test Status: {{ apex_url_test.status | default('N/A') }}"
+
+    - name: Display APEX key directories status
+      debug:
+        msg: "{{ item.item }}: {{ 'EXISTS' if item.stat.exists else 'MISSING' }}"
+      loop: "{{ apex_key_files.results }}"
+      when: apex_key_files is defined
+
+    - name: Show APEX installation info
+      command: cat "{{ apex_install_dir }}/APEX_INSTALLATION_INFO.txt"
+      register: apex_info
+      failed_when: false
+      changed_when: false
+
+    - name: Display APEX installation info
+      debug:
+        msg: "{{ apex_info.stdout_lines }}"
+      when: apex_info.rc == 0
+
+    - name: Check Tomcat logs for APEX-related entries
+      shell: |
+        if [ -f "{{ tomcat_home }}/logs/catalina.out" ]; then
+          tail -20 "{{ tomcat_home }}/logs/catalina.out" | grep -i apex || echo "No APEX entries found in recent logs"
+        else
+          echo "Tomcat log file not found"
+        fi
+      register: tomcat_apex_logs
+      changed_when: false
+
+    - name: Display Tomcat APEX logs
+      debug:
+        msg: "{{ tomcat_apex_logs.stdout_lines }}"
